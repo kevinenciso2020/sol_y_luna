@@ -5,3 +5,5 @@ dist
 coverage
 pnpm-lock.yaml
 docs/SPEC.md
+apps/api/src/generated
+apps/api/prisma/migrations

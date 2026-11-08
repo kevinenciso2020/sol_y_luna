@@ -16,7 +16,12 @@
     "typecheck": "pnpm build:shared && pnpm -r typecheck",
     "test": "pnpm build:shared && pnpm -r test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @sol-y-luna/api db:generate",
+    "db:migrate": "pnpm --filter @sol-y-luna/api db:migrate",
+    "db:deploy": "pnpm --filter @sol-y-luna/api db:deploy",
+    "db:seed": "pnpm build:shared && pnpm --filter @sol-y-luna/api db:seed",
+    "db:studio": "pnpm --filter @sol-y-luna/api db:studio"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

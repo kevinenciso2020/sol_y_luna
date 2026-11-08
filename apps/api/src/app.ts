@@ -6,9 +6,11 @@ import { pinoHttp } from 'pino-http';
 import type { Env } from './config/env.js';
 import type { Logger } from './lib/logger.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error-handler.js';
-import { healthRouter } from './routes/health.js';
+import { healthRouter, type HealthDeps } from './routes/health.js';
 
-export function createApp(env: Env, logger: Logger): Express {
+export type AppDeps = HealthDeps;
+
+export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -46,7 +48,7 @@ export function createApp(env: Env, logger: Logger): Express {
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
-  app.use(healthRouter());
+  app.use(healthRouter(deps));
 
   app.use(notFoundHandler);
   app.use(createErrorHandler({ exposeStack: env.NODE_ENV !== 'production' }));

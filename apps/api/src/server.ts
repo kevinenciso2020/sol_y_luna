@@ -1,5 +1,6 @@
 import { EnvValidationError, loadEnv, type Env } from './config/env.js';
 import { createLogger } from './lib/logger.js';
+import { createPrismaClient } from './lib/prisma.js';
 import { createApp } from './app.js';
 
 let env: Env;
@@ -16,7 +17,12 @@ try {
 }
 
 const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' });
-const app = createApp(env, logger);
+const prisma = createPrismaClient(env.DATABASE_URL);
+const app = createApp(env, logger, {
+  checkDatabase: async () => {
+    await prisma.$queryRaw`SELECT 1`;
+  },
+});
 
 const server = app.listen(env.PORT, () => {
   logger.info(
@@ -27,7 +33,9 @@ const server = app.listen(env.PORT, () => {
 
 function shutdown(signal: string) {
   logger.info({ signal }, 'cerrando servidor');
-  server.close(() => process.exit(0));
+  server.close(() => {
+    void prisma.$disconnect().finally(() => process.exit(0));
+  });
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 

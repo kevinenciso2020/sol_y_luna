@@ -6,6 +6,9 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - workerd
+  - argon2
+  - '@prisma/engines'
+  - prisma
 
 # @napi-rs/wasm-runtime declares @emnapi/* as peers, but pnpm does not link them when the
 # parent (@astrojs/astro2tsx, used by `astro check`) only has them as dependencies.

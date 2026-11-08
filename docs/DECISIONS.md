@@ -68,3 +68,44 @@ Verde oscuro `#1f7a43` (blanco encima, 5,4:1) en lugar del verde oficial claro, 
 ### pnpm `packageExtensions`
 
 `@napi-rs/wasm-runtime` (dependencia de `astro check`) no recibe sus peers `@emnapi/*` con pnpm; se agregan con `packageExtensions` en `pnpm-workspace.yaml`.
+
+## 2026-11-07 — Fase 1
+
+### Neon en São Paulo (aws-sa-east-1)
+
+Pedido del dueño: la base vive en São Paulo, la región de Neon más cercana a Colombia. Proyecto `sol-y-luna` con dos ramas: `main` (producción) y `dev` (desarrollo local). Las migraciones se prueban primero en `dev`. Al desplegar la API en Railway hay que elegir la región más cercana a São Paulo para no sumar latencia en cada consulta (se define en la fase 8).
+
+### Prisma 7.10 (estable)
+
+El tag `latest` de npm apunta a Prisma 8 RC, así que se fija 7.10.1. Prisma 7 usa:
+
+- el generador `prisma-client` con salida en `apps/api/src/generated/prisma` (no se sube al repo; se genera en `build`, `typecheck` y `test`);
+- el driver adapter `@prisma/adapter-pg` en tiempo de ejecución con `DATABASE_URL` (pooler de Neon, `sslmode=verify-full`);
+- `prisma.config.ts` para las migraciones, con `DIRECT_URL` (conexión directa, sin pooler).
+
+### Restricciones CHECK en la migración inicial
+
+Prisma no expresa CHECK, así que se agregan en SQL al final de `20261108000000_init`: stock ≥ 0 y reservado ≤ stock; precios ≥ 0; `total = subtotal − descuento + envío`; `lineTotal = unitPrice × cantidad`; calificación de 1 a 5; cupón PERCENT entre 1 y 100; comisión entre 0 y 10.000 bps y coherente con su alcance; número INVIMA obligatorio si el estado es REGISTERED; StoreSettings con una sola fila; una dirección por defecto por usuario.
+
+### Modelo de datos: decisiones puntuales
+
+- IDs `cuid()`. El número de pedido es `Order.number` (autoincremental) y se muestra como `SYL-000123` con `formatOrderNumber`.
+- La "comisión opcional por producto" del SPEC se modela como `CommissionRule` con alcance `PRODUCT`, para tener una sola fuente de verdad.
+- `CouponRedemption` registra cada uso de cupón (también de invitados, por email) para aplicar `maxUsesPerUser`.
+- `PaymentAccount` guarda la conexión OAuth de Mercado Pago con los tokens cifrados.
+- `Category.isAdult` permite poner la verificación de edad también a nivel de categoría.
+- `Order.accessTokenHash` permite que un invitado consulte su pedido sin cuenta.
+- `WebhookEvent` es único por `(provider, externalEventId)`.
+- `InventoryMovement.delta` negativo en ventas y reservas, positivo en reabastecimientos y liberaciones.
+- Los nombres de municipio son los oficiales del DANE (por ejemplo, "Santiago de Cali", "San José de Cúcuta").
+
+### Seed
+
+- Idempotente y no destructivo: crea lo que falta y nunca sobrescribe lo que se haya editado desde el admin. Los pedidos de ejemplo se crean una sola vez (nota `[seed]`).
+- Los códigos INVIMA del seed son ficticios y llevan el prefijo `DEMO-` para que nadie los tome por reales.
+- Contraseñas: admin y operador desde las variables de entorno (mínimo 12 caracteres). Para los clientes de prueba se usa `CUSTOMER_SEED_PASSWORD` (variable nueva, opcional); si falta, se genera una aleatoria y se muestra una sola vez.
+- Las imágenes apuntan a `/placeholders/{frasco|gotero|tubo|spray|lata}.svg`; los SVG se diseñan en la fase 4.
+
+### Red local con IPv6 roto
+
+En la máquina de desarrollo el motor de Prisma intentaba conectarse por IPv6 sin ruta y fallaba. Se resolvió dando prioridad a IPv4 en `/etc/gai.conf` (`precedence ::ffff:0:0/96 100`). No afecta al código ni a los servidores.

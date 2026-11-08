@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/.astro/**',
       '**/.wrangler/**',
       '**/coverage/**',
+      '**/src/generated/**',
       'pnpm-lock.yaml',
     ],
   },

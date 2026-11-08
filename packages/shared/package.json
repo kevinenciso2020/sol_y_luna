@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./divipola": {
+      "types": "./dist/divipola/index.d.ts",
+      "default": "./dist/divipola/index.js"
     }
   },
   "files": [
@@ -24,5 +28,6 @@
   "devDependencies": {
     "typescript": "~6.0.3",
     "vitest": "^5.1.0"
-  }
+  },
+  "sideEffects": false
 }

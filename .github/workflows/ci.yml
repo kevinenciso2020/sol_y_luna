@@ -24,6 +24,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Prisma validate
+        run: pnpm --filter @sol-y-luna/api db:validate
+      - name: Prisma generate
+        run: pnpm --filter @sol-y-luna/api db:generate
       - name: Lint
         run: pnpm exec eslint packages/shared apps/api --max-warnings=0
       - name: Build shared

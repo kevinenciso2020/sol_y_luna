@@ -4,13 +4,26 @@ import { createApp } from './app.js';
 import { createLogger } from './lib/logger.js';
 import { testEnv } from './test/fixtures.js';
 
-const app = createApp(testEnv(), createLogger({ level: 'silent', pretty: false }));
+const logger = createLogger({ level: 'silent', pretty: false });
+const app = createApp(testEnv(), logger, { checkDatabase: async () => {} });
 
 describe('app', () => {
   it('GET /health responds ok', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
+    expect(res.body.database).toBe('ok');
+  });
+
+  it('GET /health returns 503 when the database is unreachable', async () => {
+    const broken = createApp(testEnv(), logger, {
+      checkDatabase: async () => {
+        throw new Error('connection refused');
+      },
+    });
+    const res = await request(broken).get('/health');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ status: 'error', database: 'unreachable' });
   });
 
   it('sets security headers and a request id', async () => {
