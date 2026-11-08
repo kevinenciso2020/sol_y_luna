@@ -1,0 +1,11 @@
+---
+/** Provisional wordmark until the client delivers the SVG logo. */
+interface Props {
+  class?: string;
+}
+const { class: className = '' } = Astro.props;
+---
+
+<a href="/" class:list={['font-display text-2xl font-black text-luna no-underline', className]}>
+  Sol <span class="text-sol-600">y</span> Luna
+</a>

@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+.astro/
+.wrangler/
+coverage/
+*.tsbuildinfo
+
+# Entorno (nunca se suben secretos)
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Playwright
+playwright-report/
+test-results/
+
+# Sistema / editores
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/

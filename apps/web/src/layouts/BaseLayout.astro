@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+import Wordmark from '../components/Wordmark.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Suplementos, cuidado íntimo, skincare y bienestar importados. Envío gratis a toda Colombia.',
+} = Astro.props;
+const fullTitle = title === 'Sol y Luna Store' ? title : `${title} · Sol y Luna Store`;
+---
+
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#1747b5" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{fullTitle}</title>
+  </head>
+  <body class="min-h-dvh bg-crema text-noche antialiased">
+    <a
+      href="#contenido"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-full focus:bg-luna focus:px-4 focus:py-2 focus:text-crema"
+    >
+      Saltar al contenido
+    </a>
+    <header class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <Wordmark />
+    </header>
+    <main id="contenido">
+      <slot />
+    </main>
+    <WhatsAppButton />
+  </body>
+</html>

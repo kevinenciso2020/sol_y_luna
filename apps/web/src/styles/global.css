@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/dm-sans';
+
+/*
+ * Sol y Luna brand tokens.
+ * Contrast notes (WCAG AA, see docs/DECISIONS.md):
+ *  - luna-500 on crema: 7.4:1, crema on luna-500: 7.4:1, noche on crema: 13.6:1 → any text size.
+ *  - sol-500 on crema: 3.3:1 → decoration or large text only (≥ 24px / 19px bold).
+ *  - sol-600 on crema: 4.55:1 → small text in orange (e.g. sale price labels).
+ */
+@theme {
+  --color-luna-50: #eef3fc;
+  --color-luna-100: #d9e3f8;
+  --color-luna-200: #b3c7f0;
+  --color-luna-300: #7fa0e3;
+  --color-luna-400: #4874d1;
+  --color-luna-500: #1747b5;
+  --color-luna-600: #123a96;
+  --color-luna-700: #0f2f78;
+  --color-luna-800: #0c255e;
+  --color-luna-900: #091b45;
+  --color-luna: #1747b5;
+
+  --color-sol-50: #fdf0eb;
+  --color-sol-100: #fbdcd1;
+  --color-sol-200: #f7b8a3;
+  --color-sol-300: #f28e6e;
+  --color-sol-400: #ee7049;
+  --color-sol-500: #e9552e;
+  --color-sol-600: #c9411d;
+  --color-sol-700: #a13317;
+  --color-sol-800: #7a2712;
+  --color-sol-900: #551b0c;
+  --color-sol: #e9552e;
+
+  --color-crema-50: #fffdf9;
+  --color-crema-100: #fbf5ea;
+  --color-crema-200: #f5e8d0;
+  --color-crema-300: #edd8b2;
+  --color-crema-400: #e2c38c;
+  --color-crema-500: #d4a964;
+  --color-crema: #fbf5ea;
+
+  --color-noche-50: #e9edf6;
+  --color-noche-100: #c8d1e6;
+  --color-noche-200: #95a5cb;
+  --color-noche-300: #6177a8;
+  --color-noche-400: #34508b;
+  --color-noche-500: #1a3670;
+  --color-noche-600: #0f2557;
+  --color-noche-700: #0c1e47;
+  --color-noche-800: #091737;
+  --color-noche-900: #061026;
+  --color-noche: #0f2557;
+
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-sans: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-crema);
+    color: var(--color-noche);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-luna);
+    font-weight: 800;
+    line-height: 1.05;
+    font-variation-settings:
+      'SOFT' 50,
+      'WONK' 1;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-sol-600);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .pill-cta {
+    @apply inline-flex items-center gap-2 rounded-full bg-luna px-6 py-3 font-semibold text-crema transition-colors hover:bg-luna-700;
+  }
+  .pill-chip {
+    @apply inline-flex rounded-full bg-luna px-3 py-1 text-xs font-bold tracking-wide text-crema;
+  }
+  .pill-attr {
+    @apply inline-flex rounded-full border-2 border-luna px-3 py-0.5 text-sm font-medium text-luna;
+  }
+}

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (+ shared)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm exec eslint packages/shared apps/api --max-warnings=0
+      - name: Build shared
+        run: pnpm build:shared
+      - name: Typecheck
+        run: pnpm --filter @sol-y-luna/shared --filter @sol-y-luna/api typecheck
+      - name: Test
+        run: pnpm --filter @sol-y-luna/shared --filter @sol-y-luna/api test
+      - name: Build
+        run: pnpm --filter @sol-y-luna/api build
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm exec eslint apps/web --max-warnings=0
+      - name: Build shared
+        run: pnpm build:shared
+      - name: Typecheck
+        run: pnpm --filter @sol-y-luna/web typecheck
+      - name: Test
+        run: pnpm --filter @sol-y-luna/web test
+      - name: Build
+        run: pnpm --filter @sol-y-luna/web build
+
+  quality:
+    name: Formato y auditoría
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prettier
+        run: pnpm format:check
+      - name: Audit
+        run: pnpm audit --audit-level=high
