@@ -1,0 +1,49 @@
+---
+import AuthShell from '../../components/AuthShell.astro';
+import FormField from '../../components/FormField.astro';
+import FormMessage from '../../components/FormMessage.astro';
+import SubmitButton from '../../components/SubmitButton.astro';
+---
+
+<AuthShell
+  title="Nueva contraseña"
+  heading="Crea una nueva contraseña"
+  intro="Al guardarla cerramos todas tus sesiones abiertas."
+>
+  <form id="reset-form" class="space-y-5" novalidate>
+    <FormMessage />
+    <FormField
+      name="password"
+      label="Nueva contraseña"
+      type="password"
+      autocomplete="new-password"
+      minlength={10}
+      hint="Mínimo 10 caracteres, con al menos una letra y un número."
+    />
+    <SubmitButton label="Guardar contraseña" />
+  </form>
+</AuthShell>
+
+<script>
+  import { publicPost } from '../../lib/auth-client';
+  import { handleForm, setMessage } from '../../scripts/forms';
+
+  const form = document.querySelector<HTMLFormElement>('#reset-form');
+  // Read the token, then remove it from the address bar (and from Referer headers).
+  const token = new URLSearchParams(window.location.search).get('token') ?? '';
+  window.history.replaceState(null, '', window.location.pathname);
+
+  if (form) {
+    if (!token) {
+      setMessage(
+        form,
+        'error',
+        'El enlace no es válido. Pide uno nuevo desde "¿Olvidaste tu contraseña?".',
+      );
+    }
+    handleForm(form, async (data) => {
+      await publicPost('/api/auth/reset-password', { token, password: data['password'] });
+      window.location.assign('/cuenta/ingresar?aviso=clave-cambiada');
+    });
+  }
+</script>

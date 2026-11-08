@@ -1,0 +1,41 @@
+---
+interface Props {
+  name: string;
+  label: string;
+  type?: 'text' | 'email' | 'password' | 'tel';
+  autocomplete?: string;
+  required?: boolean;
+  hint?: string;
+  minlength?: number;
+}
+const { name, label, type = 'text', autocomplete, required = true, hint, minlength } = Astro.props;
+const id = `field-${name}`;
+const describedBy = [hint ? `${id}-hint` : null, `${id}-error`].filter(Boolean).join(' ');
+---
+
+<div class="space-y-1.5">
+  <label for={id} class="block text-sm font-semibold text-noche">
+    {label}
+  </label>
+  <input
+    id={id}
+    name={name}
+    type={type}
+    autocomplete={autocomplete}
+    required={required}
+    minlength={minlength}
+    aria-describedby={describedBy}
+    class="block w-full rounded-2xl border-2 border-luna/25 bg-crema-50 px-4 py-3 text-base text-noche transition-colors outline-none placeholder:text-noche/40 focus:border-luna aria-[invalid=true]:border-sol-600"
+  />
+  {hint && (
+    <p id={`${id}-hint`} class="text-sm text-noche/70">
+      {hint}
+    </p>
+  )}
+  <p
+    id={`${id}-error`}
+    class="text-sm font-medium text-sol-700"
+    data-error-for={name}
+    aria-live="polite"
+  ></p>
+</div>

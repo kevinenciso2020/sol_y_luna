@@ -35,10 +35,21 @@ describe('loadEnv', () => {
     }
   });
 
-  it('requires Turnstile in production', () => {
+  it('requires Turnstile and the BFF secret in production', () => {
     expect(() => loadEnv({ ...validEnvSource, NODE_ENV: 'production' })).toThrow(
       /TURNSTILE_SECRET_KEY/,
     );
+    expect(() => loadEnv({ ...validEnvSource, NODE_ENV: 'production' })).toThrow(
+      /BFF_SHARED_SECRET/,
+    );
+    expect(() =>
+      loadEnv({
+        ...validEnvSource,
+        NODE_ENV: 'production',
+        TURNSTILE_SECRET_KEY: 'x',
+        BFF_SHARED_SECRET: 'y'.repeat(40),
+      }),
+    ).not.toThrow();
   });
 
   it('stays in mock payments when live mode lacks credentials', () => {

@@ -1,0 +1,14 @@
+---
+interface Props {
+  label: string;
+}
+const { label } = Astro.props;
+---
+
+<button
+  type="submit"
+  class="pill-cta w-full justify-center disabled:cursor-wait disabled:opacity-70"
+  data-label={label}
+>
+  {label} <span aria-hidden="true">→</span>
+</button>

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "node -e \"require('fs').existsSync('.dev.vars')&&require('fs').copyFileSync('.dev.vars','dist/server/.dev.vars')\" && astro preview",
     "typecheck": "astro check",
     "test": "vitest run --passWithNoTests"
   },

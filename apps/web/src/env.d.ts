@@ -1,9 +1,13 @@
-interface ImportMetaEnv {
-  readonly PUBLIC_WHATSAPP_NUMBER?: string;
-  readonly PUBLIC_TURNSTILE_SITE_KEY?: string;
-  readonly PUBLIC_SITE_URL?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+declare namespace App {
+  interface Locals {
+    /** Set by the middleware on protected pages (/admin, /operador, /cuenta). */
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: 'ADMIN' | 'OPERATOR' | 'CUSTOMER';
+      emailVerified: boolean;
+      wholesaleStatus: string;
+    } | null;
+  }
 }

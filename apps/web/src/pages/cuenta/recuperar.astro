@@ -1,0 +1,38 @@
+---
+import AuthShell from '../../components/AuthShell.astro';
+import FormField from '../../components/FormField.astro';
+import FormMessage from '../../components/FormMessage.astro';
+import SubmitButton from '../../components/SubmitButton.astro';
+import Turnstile from '../../components/Turnstile.astro';
+---
+
+<AuthShell
+  title="Recuperar contraseña"
+  heading="Recupera tu contraseña"
+  intro="Escribe el correo de tu cuenta y te enviamos un enlace para crear una nueva. El enlace vence en 30 minutos."
+>
+  <form id="forgot-form" class="space-y-5" novalidate>
+    <FormMessage />
+    <FormField name="email" label="Correo" type="email" autocomplete="email" />
+    <Turnstile />
+    <SubmitButton label="Enviar enlace" />
+  </form>
+  <p class="mt-6 text-sm">
+    <a href="/cuenta/ingresar" class="font-semibold text-luna underline-offset-4 hover:underline">
+      Volver a ingresar
+    </a>
+  </p>
+</AuthShell>
+
+<script>
+  import { publicPost } from '../../lib/auth-client';
+  import { handleForm, setMessage } from '../../scripts/forms';
+
+  const form = document.querySelector<HTMLFormElement>('#forgot-form');
+  if (form) {
+    handleForm(form, async (data) => {
+      const result = await publicPost<{ message: string }>('/api/auth/forgot-password', data);
+      setMessage(form, 'ok', result.message);
+    });
+  }
+</script>

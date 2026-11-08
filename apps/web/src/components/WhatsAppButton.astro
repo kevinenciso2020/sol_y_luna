@@ -1,8 +1,9 @@
 ---
+import { PUBLIC_WHATSAPP_NUMBER } from 'astro:env/client';
 import { whatsappLink } from '../lib/whatsapp';
 
 const href = whatsappLink(
-  import.meta.env.PUBLIC_WHATSAPP_NUMBER,
+  PUBLIC_WHATSAPP_NUMBER,
   'Hola, quiero información sobre un producto de Sol y Luna',
 );
 ---

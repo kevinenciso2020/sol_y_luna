@@ -1,0 +1,23 @@
+---
+import LogoutButton from '../../components/LogoutButton.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const user = Astro.locals.user!;
+---
+
+<BaseLayout title="Administración">
+  <section class="mx-auto max-w-5xl px-4 pt-4 pb-16">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-4xl sm:text-5xl">Panel de administración</h1>
+        <p class="mt-2 text-noche/80">
+          Sesión de {user.name} ({user.email})
+        </p>
+      </div>
+      <LogoutButton />
+    </div>
+    <p class="mt-8 max-w-[60ch]">
+      El catálogo, los pedidos, los usuarios y la configuración llegan en las próximas fases.
+    </p>
+  </section>
+</BaseLayout>

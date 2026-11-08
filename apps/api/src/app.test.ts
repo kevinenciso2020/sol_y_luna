@@ -2,10 +2,18 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
 import { createLogger } from './lib/logger.js';
+import type { Db } from './lib/prisma.js';
+import { createMemoryEmailSender } from './services/email.js';
 import { testEnv } from './test/fixtures.js';
 
 const logger = createLogger({ level: 'silent', pretty: false });
-const app = createApp(testEnv(), logger, { checkDatabase: async () => {} });
+// Health and middleware tests never touch the database.
+const baseDeps = {
+  db: {} as Db,
+  email: createMemoryEmailSender(),
+  turnstile: { verify: async () => true },
+};
+const app = createApp(testEnv(), logger, { ...baseDeps, checkDatabase: async () => {} });
 
 describe('app', () => {
   it('GET /health responds ok', async () => {
@@ -17,6 +25,7 @@ describe('app', () => {
 
   it('GET /health returns 503 when the database is unreachable', async () => {
     const broken = createApp(testEnv(), logger, {
+      ...baseDeps,
       checkDatabase: async () => {
         throw new Error('connection refused');
       },

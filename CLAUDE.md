@@ -8,7 +8,7 @@ Proyecto independiente: no copiar código, datos ni configuración de otros repo
 
 - Monorepo pnpm workspaces, Node 24 LTS (`.nvmrc`), TypeScript ~6.0 estricto.
 - `apps/web`: Astro 7 SSR + `@astrojs/cloudflare` (Worker) + Tailwind 4 (tokens en `src/styles/global.css` con `@theme`).
-- `apps/api`: Express 5 + TypeScript, pino, helmet, Zod. Prisma 7.10 (adapter `pg`) + Neon (proyecto `sol-y-luna`, región aws-sa-east-1; ramas `main` = producción y `dev` = local).
+- `apps/api`: Express 5 + TypeScript, pino, helmet, Zod. Prisma 7.10 (adapter `pg`) + Neon (proyecto `sol-y-luna`, región aws-us-east-1 junto a Railway US East; ramas `main` = producción, `dev` = local y `test` = pruebas).
 - `packages/shared`: esquemas Zod, constantes (roles, estados, transiciones), dinero (`formatCOP`, `applyBps`), DIVIPOLA del DANE (`@sol-y-luna/shared/divipola`; se regenera con `scripts/generate-divipola.py`).
 - Tests: Vitest + Supertest (API), Playwright (compra, fase 5). CI: GitHub Actions.
 - Deploy: API en Railway, web en Cloudflare.
@@ -17,8 +17,8 @@ Proyecto independiente: no copiar código, datos ni configuración de otros repo
 
 ```
 apps/api/prisma/{schema.prisma, migrations/, seed.ts, seed-data.ts}  + prisma.config.ts
-apps/api/src/{config/env.ts, app.ts, server.ts, lib/prisma.ts, middleware/, routes/, test/, generated/ (ignorado)}
-apps/web/src/{layouts/, components/, pages/, lib/, styles/global.css}
+apps/api/src/{config/env.ts, app.ts, server.ts, lib/ (prisma, tokens, crypto, cookies), middleware/ (auth, client-ip, rate-limit), routes/ (auth, addresses, panel), services/ (auth, email, turnstile), test/, generated/ (ignorado)}
+apps/web/src/{middleware.ts, pages/api/[...path].ts (BFF), pages/cuenta|admin|operador/, layouts/, components/, lib/ (auth-client, bff, route-guard, security-headers), scripts/, styles/global.css}
 packages/shared/src/{money.ts, constants.ts, schemas.ts, divipola/, index.ts}
 docs/{SPEC.md, DECISIONS.md, DEPLOY.md}
 ```
@@ -31,9 +31,10 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - `pnpm dev` — compila shared y levanta API (:4000) y web (:4321)
 - `pnpm lint` / `pnpm lint:fix`
 - `pnpm typecheck` — tsc en shared y api, `astro check` en web
-- `pnpm test`
+- `pnpm test` — unitarias + integración (la API usa `TEST_DATABASE_URL` de `apps/api/.env.test`, rama `test` de Neon)
 - `pnpm build`
 - `pnpm format` / `pnpm format:check`
+- `pnpm --filter @sol-y-luna/web preview` — build en workerd local (usa `apps/web/.dev.vars`)
 - `pnpm db:migrate` — `prisma migrate dev` (solo contra la rama `dev` de Neon)
 - `pnpm db:deploy` — `prisma migrate deploy` (producción)
 - `pnpm db:seed` — seed idempotente (requiere ADMIN_/OPERATOR_SEED_* en `apps/api/.env`)
@@ -59,7 +60,10 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - Validación Zod en params, query y body. Errores centralizados, sin stack traces en producción, con `requestId`.
 - Logs con pino, con redacción de contraseñas, tokens, cookies y documentos.
 - El access token vive solo en memoria (nunca en localStorage). Refresh token en cookie httpOnly, rotado.
-- Web: el navegador solo habla con su dominio; `/api/*` es el BFF que reenvía a `API_INTERNAL_URL`.
+- Web: el navegador solo habla con su dominio; `/api/*` es el BFF que reenvía a `API_INTERNAL_URL` (solo cabeceras permitidas; agrega `x-client-ip` + `x-bff-secret`).
+- Auth: endpoints en `/api/auth/*`. Rutas protegidas con `requireAuth` + `requireRole`. Endpoints con cookie (refresh, logout) exigen `x-syl-csrf: 1`. Páginas `/admin`, `/operador` y `/cuenta` protegidas en el middleware de Astro con la cookie `syl_session` (validada por la API).
+- Recursos del usuario: siempre filtrar por `userId` en el `where` y responder 404 si no es suyo.
+- Mensajes de error de auth genéricos (no revelar si un correo existe).
 
 ## Modo demo
 
@@ -71,7 +75,7 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | -------------------------------------------- | ----------- |
 | 0. Base                                      | ✅ Completa |
 | 1. Datos (Prisma, migración, seed, DIVIPOLA) | ✅ Completa |
-| 2. Auth y seguridad                          | Pendiente   |
+| 2. Auth y seguridad                          | ✅ Completa |
 | 3. Catálogo y admin                          | Pendiente   |
 | 4. Tienda                                    | Pendiente   |
 | 5. Compra y pagos                            | Pendiente   |
@@ -79,4 +83,4 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | 7. Cuenta                                    | Pendiente   |
 | 8. Despliegue                                | Pendiente   |
 
-Pendientes conocidos: los SVG de placeholder (`/placeholders/*.svg`) se diseñan en la fase 4; las sesiones KV del adapter de Cloudflare y la región de Railway (cercana a São Paulo) se definen en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).
+Pendientes conocidos: los SVG de placeholder (`/placeholders/*.svg`) se diseñan en la fase 4; las sesiones KV del adapter de Cloudflare y la región de Railway (US East, junto a Neon) se definen en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).

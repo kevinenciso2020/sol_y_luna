@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Sin permiso">
+  <section class="mx-auto max-w-3xl px-4 pt-10 pb-20">
+    <h1 class="text-4xl sm:text-5xl">No tienes acceso a esta sección</h1>
+    <p class="mt-4 max-w-[52ch]">
+      Tu cuenta no tiene permiso para ver esta página. Si crees que es un error, escríbenos.
+    </p>
+    <p class="mt-8">
+      <a href="/" class="pill-cta">
+        Ir al inicio <span aria-hidden="true">→</span>
+      </a>
+    </p>
+  </section>
+</BaseLayout>

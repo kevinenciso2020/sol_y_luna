@@ -1,0 +1,19 @@
+<button
+  type="button"
+  data-logout
+  class="rounded-full border-2 border-luna px-5 py-2 font-semibold text-luna hover:bg-luna-50"
+>
+  Cerrar sesión
+</button>
+
+<script>
+  import { logout } from '../lib/auth-client';
+
+  document.querySelectorAll<HTMLButtonElement>('[data-logout]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      await logout();
+      window.location.assign('/');
+    });
+  });
+</script>

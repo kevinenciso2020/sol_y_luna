@@ -1,0 +1,59 @@
+---
+import AuthShell from '../../components/AuthShell.astro';
+import FormField from '../../components/FormField.astro';
+import FormMessage from '../../components/FormMessage.astro';
+import SubmitButton from '../../components/SubmitButton.astro';
+import Turnstile from '../../components/Turnstile.astro';
+import { safeNextPath } from '../../lib/route-guard';
+
+const next = safeNextPath(Astro.url.searchParams.get('next'), '');
+const notice = Astro.url.searchParams.get('aviso');
+---
+
+<AuthShell
+  title="Ingresar"
+  heading="Ingresa a tu cuenta"
+  intro="Revisa tus pedidos, guarda direcciones y compra más rápido."
+>
+  {notice === 'clave-cambiada' && (
+    <p class="mb-6 rounded-2xl bg-luna-50 px-4 py-3 text-sm font-medium text-luna-800">
+      Tu contraseña cambió. Ingresa con la nueva.
+    </p>
+  )}
+  <form id="login-form" class="space-y-5" novalidate data-next={next}>
+    <FormMessage />
+    <FormField name="email" label="Correo" type="email" autocomplete="email" />
+    <FormField name="password" label="Contraseña" type="password" autocomplete="current-password" />
+    <Turnstile />
+    <SubmitButton label="Ingresar" />
+  </form>
+  <div class="mt-6 flex flex-col gap-2 text-sm sm:flex-row sm:justify-between">
+    <a href="/cuenta/recuperar" class="font-semibold text-luna underline-offset-4 hover:underline">
+      ¿Olvidaste tu contraseña?
+    </a>
+    <a href="/cuenta/registro" class="font-semibold text-luna underline-offset-4 hover:underline">
+      Crear una cuenta
+    </a>
+  </div>
+</AuthShell>
+
+<script>
+  import { login } from '../../lib/auth-client';
+  import { homeForRole, safeNextPath } from '../../lib/route-guard';
+  import { handleForm } from '../../scripts/forms';
+
+  const form = document.querySelector<HTMLFormElement>('#login-form');
+  if (form) {
+    handleForm(form, async (data) => {
+      const user = await login({
+        email: String(data['email'] ?? ''),
+        password: String(data['password'] ?? ''),
+        ...(typeof data['turnstileToken'] === 'string'
+          ? { turnstileToken: data['turnstileToken'] }
+          : {}),
+      });
+      const next = safeNextPath(form.dataset['next'], '');
+      window.location.assign(next || homeForRole(user.role));
+    });
+  }
+</script>

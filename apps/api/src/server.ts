@@ -2,6 +2,8 @@ import { EnvValidationError, loadEnv, type Env } from './config/env.js';
 import { createLogger } from './lib/logger.js';
 import { createPrismaClient } from './lib/prisma.js';
 import { createApp } from './app.js';
+import { createLogEmailSender, createResendEmailSender } from './services/email.js';
+import { createTurnstileVerifier } from './services/turnstile.js';
 
 let env: Env;
 try {
@@ -18,7 +20,14 @@ try {
 
 const logger = createLogger({ level: env.LOG_LEVEL, pretty: env.NODE_ENV === 'development' });
 const prisma = createPrismaClient(env.DATABASE_URL);
+const email = env.RESEND_API_KEY
+  ? createResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, logger })
+  : createLogEmailSender(logger);
+
 const app = createApp(env, logger, {
+  db: prisma,
+  email,
+  turnstile: createTurnstileVerifier({ secret: env.TURNSTILE_SECRET_KEY, logger }),
   checkDatabase: async () => {
     await prisma.$queryRaw`SELECT 1`;
   },

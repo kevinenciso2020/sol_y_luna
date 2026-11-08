@@ -1,0 +1,86 @@
+---
+import AuthShell from '../../components/AuthShell.astro';
+import FormField from '../../components/FormField.astro';
+import FormMessage from '../../components/FormMessage.astro';
+import SubmitButton from '../../components/SubmitButton.astro';
+import Turnstile from '../../components/Turnstile.astro';
+---
+
+<AuthShell
+  title="Crear cuenta"
+  heading="Crea tu cuenta"
+  intro="Te toma un minuto. Así sigues tus pedidos y guardas tus direcciones."
+>
+  <form id="register-form" class="space-y-5" novalidate>
+    <FormMessage />
+    <FormField name="name" label="Nombre y apellido" autocomplete="name" />
+    <FormField name="email" label="Correo" type="email" autocomplete="email" />
+    <FormField
+      name="phone"
+      label="Celular (opcional)"
+      type="tel"
+      autocomplete="tel"
+      required={false}
+    />
+    <FormField
+      name="password"
+      label="Contraseña"
+      type="password"
+      autocomplete="new-password"
+      minlength={10}
+      hint="Mínimo 10 caracteres, con al menos una letra y un número."
+    />
+    <div class="space-y-1.5">
+      <label class="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          name="acceptTerms"
+          required
+          aria-describedby="field-acceptTerms-error"
+          class="mt-0.5 size-5 shrink-0 rounded border-2 border-luna accent-luna"
+        />
+        <span>
+          Acepto los{' '}
+          <a href="/legal/terminos" class="font-semibold text-luna underline">
+            términos y condiciones
+          </a>{' '}
+          y la
+          <a href="/legal/privacidad" class="font-semibold text-luna underline">
+            política de tratamiento de datos
+          </a>
+          .
+        </span>
+      </label>
+      <p
+        id="field-acceptTerms-error"
+        class="text-sm font-medium text-sol-700"
+        data-error-for="acceptTerms"
+        aria-live="polite"
+      ></p>
+    </div>
+    <Turnstile />
+    <SubmitButton label="Crear cuenta" />
+  </form>
+  <p class="mt-6 text-sm">
+    ¿Ya tienes cuenta?{' '}
+    <a href="/cuenta/ingresar" class="font-semibold text-luna underline-offset-4 hover:underline">
+      Ingresa
+    </a>
+  </p>
+</AuthShell>
+
+<script>
+  import { publicPost } from '../../lib/auth-client';
+  import { handleForm, setMessage } from '../../scripts/forms';
+
+  const form = document.querySelector<HTMLFormElement>('#register-form');
+  if (form) {
+    handleForm(form, async (data) => {
+      if (!data['phone']) delete data['phone'];
+      const result = await publicPost<{ message: string }>('/api/auth/register', data);
+      form.reset();
+      setMessage(form, 'ok', result.message);
+      form.querySelector<HTMLElement>('[data-form-message]')?.focus();
+    });
+  }
+</script>

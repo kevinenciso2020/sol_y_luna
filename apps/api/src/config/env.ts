@@ -61,6 +61,10 @@ export const envSchema = z
     ),
     WEB_URL: urlVar('WEB_URL'),
     API_URL: urlVar('API_URL'),
+    // Shared with the web BFF so the API can trust the real client IP it forwards.
+    BFF_SHARED_SECRET: optional(
+      z.string().min(32, { error: 'BFF_SHARED_SECRET debe tener al menos 32 caracteres' }),
+    ),
 
     // Payments
     PAYMENTS_MODE: z.enum(['demo', 'live']).default('demo'),
@@ -103,6 +107,14 @@ export const envSchema = z
         code: 'custom',
         path: ['TURNSTILE_SECRET_KEY'],
         message: 'Falta la variable de entorno TURNSTILE_SECRET_KEY (obligatoria en producción)',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.BFF_SHARED_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BFF_SHARED_SECRET'],
+        message:
+          'Falta la variable de entorno BFF_SHARED_SECRET (obligatoria en producción: sin ella el rate limit ve a todos los clientes con la misma IP)',
       });
     }
     if (env.NODE_ENV === 'production' && env.CORS_ORIGINS.includes('*')) {

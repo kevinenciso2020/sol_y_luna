@@ -1,0 +1,38 @@
+---
+import AuthShell from '../../components/AuthShell.astro';
+---
+
+<AuthShell title="Confirmar correo" heading="Confirmando tu correo">
+  <p id="verify-status" role="status" aria-live="polite" class="text-lg">
+    Un momento…
+  </p>
+  <p class="mt-8">
+    <a href="/cuenta" class="pill-cta">
+      Ir a mi cuenta <span aria-hidden="true">→</span>
+    </a>
+  </p>
+</AuthShell>
+
+<script>
+  import { ApiError, publicPost } from '../../lib/auth-client';
+
+  const status = document.querySelector<HTMLElement>('#verify-status');
+  const token = new URLSearchParams(window.location.search).get('token') ?? '';
+  window.history.replaceState(null, '', window.location.pathname);
+
+  async function run() {
+    if (!status) return;
+    if (!token) {
+      status.textContent = 'El enlace no es válido. Pide uno nuevo desde tu cuenta.';
+      return;
+    }
+    try {
+      const result = await publicPost<{ message: string }>('/api/auth/verify-email', { token });
+      status.textContent = result.message;
+    } catch (error) {
+      status.textContent =
+        error instanceof ApiError ? error.message : 'No pudimos conectar. Intenta de nuevo.';
+    }
+  }
+  void run();
+</script>
