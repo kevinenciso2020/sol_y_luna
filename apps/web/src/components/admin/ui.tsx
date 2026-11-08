@@ -113,7 +113,7 @@ export function TextInput(props: {
   onInput: (value: string) => void;
   error?: string | undefined;
   hint?: string | undefined;
-  type?: 'text' | 'email' | 'tel' | 'password' | 'url' | 'datetime-local' | undefined;
+  type?: 'text' | 'email' | 'tel' | 'password' | 'url' | 'date' | 'datetime-local' | undefined;
   required?: boolean | undefined;
   inputMode?: 'numeric' | 'text' | 'email' | 'tel' | 'url' | undefined;
   placeholder?: string | undefined;

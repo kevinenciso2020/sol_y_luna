@@ -1,23 +1,8 @@
 ---
-import LogoutButton from '../../components/LogoutButton.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
-
-const user = Astro.locals.user!;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import OrdersPanel from '../../components/admin/OrdersPanel';
 ---
 
-<BaseLayout title="Despachos">
-  <section class="mx-auto max-w-5xl px-4 pt-4 pb-16">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 class="text-4xl sm:text-5xl">Panel de despachos</h1>
-        <p class="mt-2 text-noche/80">
-          Sesión de {user.name} ({user.email})
-        </p>
-      </div>
-      <LogoutButton />
-    </div>
-    <p class="mt-8 max-w-[60ch]">
-      Los pedidos por preparar, las guías y el stock llegan en la fase 6.
-    </p>
-  </section>
-</BaseLayout>
+<AdminLayout title="Pedidos" area="operator">
+  <OrdersPanel client:only="preact" scope="operator" />
+</AdminLayout>

@@ -40,6 +40,11 @@ import type { PaymentProvider as ProviderId } from './generated/prisma/client.js
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { panelRouter } from './routes/panel.js';
+import { backofficeRouter } from './routes/backoffice.js';
+import { adminCommissionRulesRouter } from './routes/admin/commission-rules.js';
+import { adminDashboardRouter } from './routes/admin/dashboard.js';
+import { createBackofficeService } from './services/backoffice.service.js';
+import { createSettlementsService } from './services/settlements.service.js';
 import { createAuthService } from './services/auth.service.js';
 import type { EmailSender } from './services/email.js';
 import type { TurnstileVerifier } from './services/turnstile.js';
@@ -127,6 +132,8 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   });
   deps.onReady?.({ orders });
   const adminProducts = createAdminProductsService({ db: deps.db, cloudinary });
+  const backoffice = createBackofficeService({ db: deps.db, email: deps.email, logger });
+  const settlements = createSettlementsService({ db: deps.db });
 
   app.disable('x-powered-by');
   // Railway sits behind a single proxy hop.
@@ -236,9 +243,18 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
     '/payments',
     adminPaymentsRouter({ db: deps.db, env, mercadoPago, stateSecret: env.JWT_ACCESS_SECRET }),
   );
+  admin.use('/commission-rules', adminCommissionRulesRouter({ db: deps.db }));
+  admin.use('/dashboard', adminDashboardRouter({ db: deps.db }));
+  admin.use(backofficeRouter({ backoffice, settlements, scope: 'ADMIN' }));
   admin.use(panelRouter());
   api.use('/admin', admin);
-  api.use('/operator', authenticated, requireRole('ADMIN', 'OPERATOR'), panelRouter());
+  api.use(
+    '/operator',
+    authenticated,
+    requireRole('ADMIN', 'OPERATOR'),
+    backofficeRouter({ backoffice, settlements, scope: 'OPERATOR' }),
+    panelRouter(),
+  );
 
   app.use('/api', api);
 

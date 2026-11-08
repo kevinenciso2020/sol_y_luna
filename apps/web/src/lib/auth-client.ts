@@ -72,7 +72,7 @@ export function refreshSession(): Promise<boolean> {
 }
 
 /** fetch() against the BFF with the in-memory access token; refreshes once on 401. */
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const send = () => {
     const headers = new Headers(init.headers);
     if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
@@ -84,8 +84,18 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   let res = await send();
   if (res.status === 401 && (await refreshSession())) res = await send();
   if (!res.ok) throw await parseError(res);
+  return res;
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await authedFetch(path, init);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/** Authenticated file download (e.g. CSV exports): the token never goes in a URL. */
+export async function apiBlob(path: string): Promise<Blob> {
+  return (await authedFetch(path)).blob();
 }
 
 /** POST without auth (login, register, recovery). */

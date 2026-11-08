@@ -3,6 +3,10 @@ import { expectNoHorizontalScroll, loginAsAdmin } from './helpers';
 
 const ADMIN_PAGES = [
   '/admin',
+  '/admin/pedidos',
+  '/admin/inventario',
+  '/admin/comisiones',
+  '/admin/liquidaciones',
   '/admin/productos',
   '/admin/productos/nuevo',
   '/admin/categorias',

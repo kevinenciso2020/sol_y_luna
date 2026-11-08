@@ -296,3 +296,40 @@ Nuevo límite `webhooks` (300/min). Checkout, reintento y pago simulado usan `se
 ### E2E contra el build de producción
 
 Playwright sirve la web con `astro build` + `astro preview` (workerd, el runtime de Cloudflare) en lugar del servidor de desarrollo, que compilaba cada página en la primera visita y hacía las pruebas lentas e inestables. El CI tiene un job `E2E (Playwright)` con Postgres 18 y secretos efímeros generados en cada corrida.
+
+## 2026-11-08 — Fase 6
+
+### Comisiones
+
+- Reglas GLOBAL, por categoría o por producto, con nivel de precio opcional (detal, mayorista o ambos), vigencia y estado. Solo el ADMIN las ve y edita (`/api/admin/commission-rules`); el operador recibe 403.
+- Siempre debe quedar al menos una regla GLOBAL activa (si no, un pedido podría quedar sin comisión). El valor fijo por pedido solo se acepta en la regla GLOBAL.
+- La comisión se congela al pagar (`commissionAmount`). Cambiar o borrar una regla no altera pedidos pagados.
+
+### Reembolsos
+
+- El dinero se devuelve desde el panel de la pasarela; en el admin se **registra** el reembolso (`OrderRefund`). No llamamos a la API de reembolsos de Wompi o Mercado Pago: es la opción más segura mientras no haya credenciales reales, y evita reembolsos duplicados por reintentos.
+- La comisión original no se toca: lo reversado se acumula en `Order.commissionRefunded`. El reverso es acumulativo (`commissionAfterRefund` sobre el total reembolsado hasta ahora), así que varios reembolsos parciales que terminan en uno total reversan exactamente el 100 %, sin pesos perdidos por redondeo.
+- El reembolso total pasa el pedido a REFUNDED y puede devolver las unidades al inventario (movimiento RETURN). Un reembolso parcial no devuelve stock automáticamente: se usa el ajuste de stock.
+- Un pedido pagado no se cancela: se registra un reembolso total. El admin solo cancela pedidos sin pagar (libera la reserva).
+- CHECK en la base: monto del reembolso > 0, reembolsado ≤ total y comisión reversada ≤ comisión cobrada.
+
+### Liquidaciones
+
+- Periodos en hora de Colombia (UTC−5 todo el año): quincenal (1–15 y 16–fin de mes) o mensual, según `StoreSettings.settlementFrequency`. Por defecto se liquida el último periodo que ya terminó.
+- Una liquidación incluye los pedidos pagados en el periodo y los reembolsos registrados en el periodo (cada uno en su propia liquidación, aunque el pedido sea de otro periodo). Así, una liquidación cerrada nunca cambia.
+- Cuadre al peso: neto = ventas − reembolsos − comisión de la plataforma (menos la reversada) − comisión de la pasarela. Cada fila del CSV cumple la misma fórmula y la fila Total es la suma.
+- Estados: abierta (se puede recalcular o eliminar) → cerrada (solo cuando el periodo terminó; los totales quedan fijos) → pagada. No se permiten periodos solapados, aunque cambie la frecuencia.
+- CSV para Excel en Colombia: UTF-8 con BOM, separador `;`, pesos enteros. Los textos que empiezan por `=`, `+`, `-` o `@` se neutralizan (inyección de fórmulas). La descarga usa el token en memoria (`apiBlob`), nunca un token en la URL.
+- El operador consulta las liquidaciones y descarga el CSV, pero no las genera, cierra ni paga.
+
+### Panel del operador
+
+- Ve solo pedidos pagados o posteriores (`PAID`, `PREPARING`, `SHIPPED`, `DELIVERED`, `REFUNDED`); cualquier otro responde 404. Nunca recibe datos de comisión.
+- Solo puede pasar pedidos a PREPARING, SHIPPED o DELIVERED, siempre validado con `canTransitionOrder`. Despachar exige transportadora y guía (`PUT /orders/:numero/shipment` desde PREPARING); corregir la guía después no reenvía el correo.
+- Cada cambio de estado escribe `OrderStatusHistory` (con quién lo hizo) y `AuditLog` en la misma transacción. Los cambios usan `updateMany` condicionado al estado actual, así dos personas no pisan el mismo pedido.
+- Ajuste de stock con UPDATE condicional: el stock nunca queda por debajo de lo apartado en pedidos pendientes. Cada ajuste crea `InventoryMovement` y `AuditLog`.
+- Admin y operador comparten el mismo router (`routes/backoffice.ts`) montado dos veces con un alcance distinto; los permisos se deciden en el servidor.
+
+### Correos
+
+Nuevas plantillas: pedido despachado (transportadora, guía y botón de seguimiento si hay URL https) y respuesta a la solicitud de mayorista (aprobada o no). Esta última se conecta en la fase 7, cuando exista el flujo de solicitud.

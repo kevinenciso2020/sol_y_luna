@@ -1,31 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectNoHorizontalScroll } from './helpers';
-
-const PRODUCT = '/productos/sauco-negro-vitamina-c-zinc';
-
-async function addToCart(page: Page, quantity: number) {
-  await page.goto(PRODUCT);
-  await page.getByLabel('Cantidad').fill(String(quantity));
-  await page.getByRole('button', { name: /Agregar al carrito/ }).click();
-  await expect(page.getByText('Listo, lo agregamos.')).toBeVisible();
-}
-
-async function fillGuestCheckout(page: Page, email: string) {
-  await page.locator('#name').fill('Laura Gómez');
-  await page.locator('#email').fill(email);
-  await page.locator('#phone').fill('3001234567');
-  await page.locator('#departmentCode').selectOption({ label: 'Antioquia' });
-  await page.locator('#municipalityCode').selectOption({ label: 'Medellín' });
-  await page.locator('#addressLine').fill('Calle 10 # 43-20, apto 502');
-  await page.getByLabel('Empaque discreto').check();
-}
-
-async function acceptAndPay(page: Page) {
-  await page.getByRole('checkbox', { name: /términos y condiciones/ }).check();
-  await page.getByRole('checkbox', { name: /tratamiento de mis datos/ }).check();
-  await page.getByRole('button', { name: /^Pagar \$/ }).click();
-  await expect(page).toHaveURL(/\/pago\/simulado\?ref=SYL-/);
-}
+import { acceptAndPay, addToCart, expectNoHorizontalScroll, fillGuestCheckout } from './helpers';
 
 const availableOf = async (page: Page) =>
   (await (await page.request.get('/api/catalog/products/sauco-negro-vitamina-c-zinc')).json()).data

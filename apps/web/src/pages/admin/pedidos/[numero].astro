@@ -1,0 +1,11 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import OrderDetail from '../../../components/admin/OrderDetail';
+
+const numero = (Astro.params.numero ?? '').toUpperCase();
+if (!/^SYL-\d{6,}$/.test(numero)) return Astro.redirect('/admin/pedidos');
+---
+
+<AdminLayout title={`Pedido ${numero}`}>
+  <OrderDetail client:only="preact" scope="admin" number={numero} />
+</AdminLayout>

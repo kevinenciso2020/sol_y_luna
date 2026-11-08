@@ -1,6 +1,6 @@
 /**
- * Minimal branded transactional templates. Phase 6 extends this set
- * (orders, payments, shipments, wholesale responses).
+ * Branded transactional templates: account, orders, payments, shipments and wholesale responses.
+ * Every user-supplied value goes through escapeHtml.
  */
 const escapeHtml = (value: string) =>
   value.replace(
@@ -126,4 +126,37 @@ export function orderPaidTemplate(input: { order: OrderEmailData }) {
   );
   const text = `Confirmamos el pago de tu pedido ${input.order.number}. Te avisamos con la guía cuando salga.\n${orderText(input.order)}`;
   return { subject, html, text };
+}
+
+export function orderShippedTemplate(input: {
+  order: OrderEmailData;
+  shipment: { carrier: string; trackingNumber: string; trackingUrl: string | null };
+}) {
+  const { order, shipment } = input;
+  const subject = `Tu pedido ${order.number} va en camino`;
+  const html = layout(
+    subject,
+    `<p>Hola, ${escapeHtml(order.customerName)}.</p><p>Tu pedido <strong>${order.number}</strong> ya salió de nuestra bodega.</p>
+<p style="background:#fbf5ea;border-radius:16px;padding:16px">Transportadora: <strong>${escapeHtml(shipment.carrier)}</strong><br>Número de guía: <strong>${escapeHtml(shipment.trackingNumber)}</strong></p>
+${shipment.trackingUrl ? button(shipment.trackingUrl, 'Seguir mi envío') : ''}${orderTable(order)}`,
+  );
+  const text = `Tu pedido ${order.number} va en camino. Transportadora: ${shipment.carrier}. Guía: ${shipment.trackingNumber}.${shipment.trackingUrl ? ` Seguimiento: ${shipment.trackingUrl}` : ''}\n${orderText(order)}`;
+  return { subject, html, text };
+}
+
+export function wholesaleResponseTemplate(input: {
+  name: string;
+  approved: boolean;
+  link: string;
+}) {
+  const subject = input.approved
+    ? 'Tu cuenta mayorista fue aprobada'
+    : 'Respuesta a tu solicitud de cuenta mayorista';
+  const body = input.approved
+    ? `<p>Hola, ${escapeHtml(input.name)}.</p><p>Aprobamos tu cuenta mayorista. Desde ahora ves el precio mayorista en los productos que lo tienen, y se aplica al comprar la cantidad mínima de cada presentación.</p>${button(input.link, 'Ver productos')}`
+    : `<p>Hola, ${escapeHtml(input.name)}.</p><p>Revisamos tu solicitud de cuenta mayorista y por ahora no podemos aprobarla. Puedes seguir comprando con precio detal y, si tienes preguntas, escríbenos.</p>`;
+  const text = input.approved
+    ? `Aprobamos tu cuenta mayorista. Ver productos: ${input.link}`
+    : 'Revisamos tu solicitud de cuenta mayorista y por ahora no podemos aprobarla.';
+  return { subject, html: layout(subject, body), text };
 }

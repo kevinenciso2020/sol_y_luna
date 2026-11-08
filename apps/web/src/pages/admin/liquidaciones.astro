@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import SettlementsPanel from '../../components/admin/SettlementsPanel';
+---
+
+<AdminLayout title="Liquidaciones">
+  <SettlementsPanel client:only="preact" scope="admin" />
+</AdminLayout>

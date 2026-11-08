@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import InventoryPanel from '../../components/admin/InventoryPanel';
+---
+
+<AdminLayout title="Inventario">
+  <InventoryPanel client:only="preact" scope="admin" />
+</AdminLayout>

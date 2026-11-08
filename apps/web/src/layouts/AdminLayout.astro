@@ -4,24 +4,41 @@ import LogoutButton from '../components/LogoutButton.astro';
 
 interface Props {
   title: string;
+  /** Which panel: the admin (/admin) or the operator's dispatch panel (/operador). */
+  area?: 'admin' | 'operator';
 }
-const { title } = Astro.props;
+const { title, area = 'admin' } = Astro.props;
 const user = Astro.locals.user!;
-const path = Astro.url.pathname.replace(/\/+$/, '') || '/admin';
+const home = area === 'admin' ? '/admin' : '/operador';
+const path = Astro.url.pathname.replace(/\/+$/, '') || home;
 
-const nav = [
-  { href: '/admin', label: 'Resumen' },
-  { href: '/admin/productos', label: 'Productos' },
-  { href: '/admin/categorias', label: 'Categorías' },
-  { href: '/admin/marcas', label: 'Marcas' },
-  { href: '/admin/cupones', label: 'Cupones' },
-  { href: '/admin/usuarios', label: 'Usuarios' },
-  { href: '/admin/pagos', label: 'Pagos' },
-  { href: '/admin/configuracion', label: 'Configuración' },
-  { href: '/admin/auditoria', label: 'Auditoría' },
-];
+const nav =
+  area === 'admin'
+    ? [
+        { href: '/admin', label: 'Resumen' },
+        { href: '/admin/pedidos', label: 'Pedidos' },
+        { href: '/admin/productos', label: 'Productos' },
+        { href: '/admin/inventario', label: 'Inventario' },
+        { href: '/admin/categorias', label: 'Categorías' },
+        { href: '/admin/marcas', label: 'Marcas' },
+        { href: '/admin/cupones', label: 'Cupones' },
+        { href: '/admin/usuarios', label: 'Usuarios' },
+        { href: '/admin/comisiones', label: 'Comisiones' },
+        { href: '/admin/liquidaciones', label: 'Liquidaciones' },
+        { href: '/admin/pagos', label: 'Pagos' },
+        { href: '/admin/configuracion', label: 'Configuración' },
+        { href: '/admin/auditoria', label: 'Auditoría' },
+      ]
+    : [
+        { href: '/operador', label: 'Pedidos' },
+        { href: '/operador/stock', label: 'Stock' },
+        { href: '/operador/liquidaciones', label: 'Liquidaciones' },
+      ];
 const isActive = (href: string) =>
-  href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`);
+  href === home
+    ? path === home || (area === 'operator' && path.startsWith('/operador/pedidos'))
+    : path === href || path.startsWith(`${href}/`);
+const navLabel = area === 'admin' ? 'Administración' : 'Despachos';
 const current = nav.find((n) => isActive(n.href));
 ---
 
@@ -32,7 +49,7 @@ const current = nav.find((n) => isActive(n.href));
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} · Admin · Sol y Luna</title>
+    <title>{title} · {area === 'admin' ? 'Admin' : 'Despachos'} · Sol y Luna</title>
   </head>
   <body class="min-h-dvh bg-crema text-noche antialiased">
     <a
@@ -44,10 +61,10 @@ const current = nav.find((n) => isActive(n.href));
     <div class="lg:grid lg:min-h-dvh lg:grid-cols-[16rem_1fr]">
       <!-- Sidebar (lg and up) -->
       <aside class="hidden bg-luna text-crema lg:flex lg:flex-col lg:gap-6 lg:p-6">
-        <a href="/admin" class="font-display text-2xl font-black text-crema">
+        <a href={home} class="font-display text-2xl font-black text-crema">
           Sol <span class="text-sol-300">y</span> Luna
         </a>
-        <nav aria-label="Administración" class="flex flex-col gap-1">
+        <nav aria-label={navLabel} class="flex flex-col gap-1">
           {nav.map((item) => (
             <a
               href={item.href}
@@ -86,7 +103,7 @@ const current = nav.find((n) => isActive(n.href));
               </span>
             </summary>
             <nav
-              aria-label="Administración"
+              aria-label={navLabel}
               class="grid gap-1 border-t border-luna-600 px-4 py-3 sm:grid-cols-2"
             >
               {nav.map((item) => (

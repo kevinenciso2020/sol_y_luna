@@ -47,13 +47,36 @@ async function release(tx: Tx, variantId: string, quantity: number) {
     WHERE "id" = ${variantId}`;
 }
 
-const orderInclude = {
+export const orderInclude = {
   items: true,
   shipment: true,
   statusHistory: { orderBy: { createdAt: 'asc' } },
   payments: { orderBy: { createdAt: 'desc' }, take: 1 },
 } satisfies Prisma.OrderInclude;
 type FullOrder = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
+
+/** Releases every reservation of an order and records the RELEASE movements. */
+export async function releaseOrderReservations(
+  tx: Tx,
+  orderId: string,
+  orderNumber: number,
+  reason: string,
+) {
+  const items = await tx.orderItem.findMany({ where: { orderId } });
+  for (const item of items) {
+    if (!item.variantId) continue;
+    await release(tx, item.variantId, item.quantity);
+    await tx.inventoryMovement.create({
+      data: {
+        variantId: item.variantId,
+        delta: item.quantity,
+        reason: 'RELEASE',
+        reference: `${formatOrderNumber(orderNumber)}: ${reason}`,
+        orderId,
+      },
+    });
+  }
+}
 
 export function toOrderDto(order: FullOrder) {
   return {
@@ -197,28 +220,6 @@ export function createOrdersService(deps: OrdersServiceDeps) {
       data: { orderId, fromStatus: from, toStatus: to, note, changedById },
     });
     return true;
-  }
-
-  async function releaseOrderReservations(
-    tx: Tx,
-    orderId: string,
-    orderNumber: number,
-    reason: string,
-  ) {
-    const items = await tx.orderItem.findMany({ where: { orderId } });
-    for (const item of items) {
-      if (!item.variantId) continue;
-      await release(tx, item.variantId, item.quantity);
-      await tx.inventoryMovement.create({
-        data: {
-          variantId: item.variantId,
-          delta: item.quantity,
-          reason: 'RELEASE',
-          reference: `${formatOrderNumber(orderNumber)}: ${reason}`,
-          orderId,
-        },
-      });
-    }
   }
 
   return {

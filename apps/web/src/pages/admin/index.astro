@@ -1,7 +1,9 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import Dashboard from '../../components/admin/Dashboard';
 
 const sections = [
+  { href: '/admin/pedidos', title: 'Pedidos', text: 'Pagos, despachos, guías y reembolsos.' },
   {
     href: '/admin/productos',
     title: 'Productos',
@@ -10,7 +12,18 @@ const sections = [
   { href: '/admin/categorias', title: 'Categorías', text: 'Categorías, subcategorías y orden.' },
   { href: '/admin/marcas', title: 'Marcas', text: 'Páginas de marca y sus temas.' },
   { href: '/admin/cupones', title: 'Cupones', text: 'Descuentos por porcentaje o valor fijo.' },
+  { href: '/admin/inventario', title: 'Inventario', text: 'Stock por presentación y ajustes.' },
   { href: '/admin/usuarios', title: 'Usuarios', text: 'Roles, operadores y clientes.' },
+  {
+    href: '/admin/comisiones',
+    title: 'Comisiones',
+    text: 'Porcentaje de la plataforma por regla.',
+  },
+  {
+    href: '/admin/liquidaciones',
+    title: 'Liquidaciones',
+    text: 'Cortes por periodo, cierre, pago y CSV.',
+  },
   {
     href: '/admin/configuracion',
     title: 'Configuración',
@@ -22,11 +35,11 @@ const sections = [
 
 <AdminLayout title="Resumen">
   <h1 class="text-3xl sm:text-4xl">Hola, {Astro.locals.user!.name.split(' ')[0]}</h1>
-  <p class="mt-2 max-w-[60ch] text-noche/80">
-    Las ventas, los pedidos y las comisiones aparecerán aquí cuando lleguen las fases de compra y
-    negocio.
-  </p>
-  <ul class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  <div class="mt-6">
+    <Dashboard client:only="preact" />
+  </div>
+  <h2 class="mt-12 font-display text-2xl text-luna">Secciones</h2>
+  <ul class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
     {sections.map((s) => (
       <li>
         <a

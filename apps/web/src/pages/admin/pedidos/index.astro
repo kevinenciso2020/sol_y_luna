@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import OrdersPanel from '../../../components/admin/OrdersPanel';
+---
+
+<AdminLayout title="Pedidos">
+  <OrdersPanel client:only="preact" scope="admin" />
+</AdminLayout>

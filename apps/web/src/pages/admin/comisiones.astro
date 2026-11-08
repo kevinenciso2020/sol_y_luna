@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CommissionManager from '../../components/admin/CommissionManager';
+---
+
+<AdminLayout title="Comisiones">
+  <CommissionManager client:only="preact" />
+</AdminLayout>

@@ -158,6 +158,7 @@ model User {
   auditLogs          AuditLog[]
   couponRedemptions  CouponRedemption[]
   commissionRules    CommissionRule[]
+  orderRefunds       OrderRefund[]
 
   @@index([role])
   @@index([wholesaleStatus])
@@ -496,14 +497,16 @@ model Order {
   cancelledAt          DateTime?
 
   // Platform commission, frozen when the order is paid
-  commissionRuleId  String?
-  commissionRateBps Int?
-  commissionFixed   Int?
-  commissionAmount  Int?
-  gatewayFeeAmount  Int?
-  merchantNetAmount Int?
-  refundedAmount    Int     @default(0)
-  settlementId      String?
+  commissionRuleId   String?
+  commissionRateBps  Int?
+  commissionFixed    Int?
+  commissionAmount   Int?
+  gatewayFeeAmount   Int?
+  merchantNetAmount  Int?
+  refundedAmount     Int     @default(0)
+  // Commission reversed by refunds; current commission = commissionAmount - commissionRefunded
+  commissionRefunded Int     @default(0)
+  settlementId       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -518,6 +521,7 @@ model Order {
   payments       Payment[]
   reviews        Review[]
   redemption     CouponRedemption?
+  refunds        OrderRefund[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -657,6 +661,28 @@ model CommissionRule {
   @@index([productId])
 }
 
+// Refund recorded by the admin (the money is returned in the gateway's panel). The commission
+// reversal is cumulative so a series of partial refunds always ends in exactly 0 on a full refund.
+model OrderRefund {
+  id                 String   @id @default(cuid())
+  orderId            String
+  amount             Int
+  commissionReversed Int
+  restocked          Boolean  @default(false)
+  reason             String
+  createdById        String?
+  settlementId       String?
+  createdAt          DateTime @default(now())
+
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  settlement Settlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([settlementId])
+  @@index([createdAt])
+}
+
 model Settlement {
   id              String           @id @default(cuid())
   periodStart     DateTime
@@ -666,6 +692,7 @@ model Settlement {
   grossSales      Int              @default(0)
   commissionTotal Int              @default(0)
   gatewayFeeTotal Int              @default(0)
+  refundTotal     Int              @default(0)
   netTotal        Int              @default(0)
   notes           String?
   closedAt        DateTime?
@@ -673,7 +700,8 @@ model Settlement {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  orders Order[]
+  orders  Order[]
+  refunds OrderRefund[]
 
   @@unique([periodStart, periodEnd])
   @@index([status])
