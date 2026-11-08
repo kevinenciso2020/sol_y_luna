@@ -41,6 +41,10 @@ import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { panelRouter } from './routes/panel.js';
 import { backofficeRouter } from './routes/backoffice.js';
+import { accountRouter } from './routes/account.js';
+import { adminReviewsRouter } from './routes/admin/reviews.js';
+import { adminWholesaleRouter } from './routes/admin/wholesale.js';
+import { createAccountService } from './services/account.service.js';
 import { adminCommissionRulesRouter } from './routes/admin/commission-rules.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.js';
 import { createBackofficeService } from './services/backoffice.service.js';
@@ -134,6 +138,7 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   const adminProducts = createAdminProductsService({ db: deps.db, cloudinary });
   const backoffice = createBackofficeService({ db: deps.db, email: deps.email, logger });
   const settlements = createSettlementsService({ db: deps.db });
+  const account = createAccountService({ db: deps.db });
 
   app.disable('x-powered-by');
   // Railway sits behind a single proxy hop.
@@ -196,6 +201,11 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   const authenticated = requireAuth({ tokens, auth });
   api.use('/catalog', optionalAuth({ tokens, auth }), catalogRouter({ catalog, db: deps.db }));
   api.use('/account/addresses', authenticated, addressesRouter({ db: deps.db }));
+  api.use(
+    '/account',
+    authenticated,
+    accountRouter({ account, reviewsLimiter: limiter(rateLimits.reviews) }),
+  );
   const maybeAuth = optionalAuth({ tokens, auth });
   api.use('/cart', maybeAuth, cartRouter({ cart, secureCookies }));
   // Optional auth only where it matters (checkout, orders, payments); webhooks never need it.
@@ -245,6 +255,11 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   );
   admin.use('/commission-rules', adminCommissionRulesRouter({ db: deps.db }));
   admin.use('/dashboard', adminDashboardRouter({ db: deps.db }));
+  admin.use('/reviews', adminReviewsRouter({ db: deps.db }));
+  admin.use(
+    '/wholesale',
+    adminWholesaleRouter({ db: deps.db, email: deps.email, logger, webUrl: env.WEB_URL }),
+  );
   admin.use(backofficeRouter({ backoffice, settlements, scope: 'ADMIN' }));
   admin.use(panelRouter());
   api.use('/admin', admin);

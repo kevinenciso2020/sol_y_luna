@@ -1,0 +1,50 @@
+---
+import LogoutButton from '../LogoutButton.astro';
+
+interface Props {
+  /** Heading of the current tab. */
+  title: string;
+}
+const { title } = Astro.props;
+const user = Astro.locals.user!;
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/cuenta';
+
+const tabs = [
+  { href: '/cuenta', label: 'Perfil' },
+  { href: '/cuenta/pedidos', label: 'Pedidos' },
+  { href: '/cuenta/direcciones', label: 'Direcciones' },
+  { href: '/cuenta/deseos', label: 'Lista de deseos' },
+  { href: '/cuenta/resenas', label: 'Reseñas' },
+  { href: '/cuenta/mayorista', label: 'Mayorista' },
+];
+const isActive = (href: string) =>
+  href === '/cuenta' ? path === '/cuenta' : path === href || path.startsWith(`${href}/`);
+---
+
+<section class="mx-auto max-w-5xl px-4 pt-4 pb-16">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0">
+      <p class="font-semibold text-luna">Hola, {user.name.split(' ')[0]}</p>
+      <h1 class="text-4xl break-words sm:text-5xl">{title}</h1>
+    </div>
+    <LogoutButton />
+  </div>
+  <nav aria-label="Mi cuenta" class="mt-6">
+    <ul class="flex flex-wrap gap-2">
+      {tabs.map((t) => (
+        <li>
+          <a
+            href={t.href}
+            aria-current={isActive(t.href) ? 'page' : undefined}
+            class="inline-flex min-h-11 items-center rounded-full border-2 border-luna/20 px-4 text-sm font-semibold text-luna hover:border-luna aria-[current=page]:border-luna aria-[current=page]:bg-luna aria-[current=page]:text-crema"
+          >
+            {t.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  <div class="mt-8">
+    <slot />
+  </div>
+</section>

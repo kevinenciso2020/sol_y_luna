@@ -510,6 +510,7 @@ describe.skipIf(!hasTestDatabase)('auth (integración)', () => {
           refresh: { limit: 0, windowMs: 60_000 },
           sensitive: { limit: 0, windowMs: 60_000 },
           webhooks: { limit: 0, windowMs: 60_000 },
+          reviews: { limit: 0, windowMs: 60_000 },
         },
       });
       const attempt = () =>

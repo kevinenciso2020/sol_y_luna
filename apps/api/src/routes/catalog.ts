@@ -1,7 +1,8 @@
 import { Router, type Router as ExpressRouter } from 'express';
 import { z } from 'zod';
-import { catalogQuerySchema, slugSchema } from '@sol-y-luna/shared';
+import { catalogQuerySchema, publicReviewQuerySchema, slugSchema } from '@sol-y-luna/shared';
 import { handler } from '../lib/async.js';
+import { HttpError } from '../lib/http-error.js';
 import type { Db } from '../lib/prisma.js';
 import type { CatalogService } from '../services/catalog.service.js';
 
@@ -41,6 +42,18 @@ export function catalogRouter(deps: { catalog: CatalogService; db: Db }): Expres
       // Personalized answers (wholesale prices) must never be cached publicly.
       res.setHeader('Cache-Control', req.auth ? 'private, no-store' : cache(60));
       res.json({ data: await catalog.getProduct(slug, { wholesaleApproved }) });
+    }),
+  );
+
+  router.get(
+    '/products/:slug/reviews',
+    handler(async (req, res) => {
+      const { slug } = slugParams.parse(req.params);
+      const { page, pageSize } = publicReviewQuerySchema.parse(req.query);
+      const result = await catalog.productReviews(slug, page, pageSize);
+      if (!result) throw new HttpError(404, 'Producto no encontrado', 'NOT_FOUND');
+      res.setHeader('Cache-Control', cache(60));
+      res.json(result);
     }),
   );
 

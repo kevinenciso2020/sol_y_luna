@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ReviewModeration from '../../components/admin/ReviewModeration';
+---
+
+<AdminLayout title="Reseñas">
+  <ReviewModeration client:only="preact" />
+</AdminLayout>

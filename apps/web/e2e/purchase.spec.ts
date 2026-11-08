@@ -46,6 +46,26 @@ test.describe('compra completa en modo demo', () => {
     expect(await availableOf(page)).toBe(before - 2);
   });
 
+  test('si el cupón ya se usó con ese correo, el checkout dice por qué', async ({
+    page,
+  }, testInfo) => {
+    // The first test already used BIENVENIDA10 with this email (one use per customer).
+    await addToCart(page, 2); // the coupon needs $80.000 or more
+    await page.goto('/carrito');
+    await page.getByLabel('Cupón de descuento').fill('bienvenida10');
+    await page.getByRole('button', { name: 'Aplicar' }).click();
+    await expect(page.getByText('Cupón BIENVENIDA10 aplicado.')).toBeVisible();
+    await page.getByRole('link', { name: /Continuar al pago/ }).click();
+    await fillGuestCheckout(page, `invitado-${testInfo.project.name}@example.com`);
+    await page.getByRole('checkbox', { name: /términos y condiciones/ }).check();
+    await page.getByRole('checkbox', { name: /tratamiento de mis datos/ }).check();
+    await page.getByRole('button', { name: /^Pagar \$/ }).click();
+    await expect(
+      page.getByText(/El cupón BIENVENIDA10 no se puede usar: .+ Quítalo en el carrito/),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/checkout/);
+  });
+
   test('pago rechazado libera el stock y se puede reintentar', async ({ page }, testInfo) => {
     const before = await availableOf(page);
     await addToCart(page, 1);

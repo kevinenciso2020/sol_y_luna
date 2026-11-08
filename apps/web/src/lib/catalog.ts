@@ -54,6 +54,17 @@ export interface ProductDetail extends Omit<
     available: number;
   }[];
   related: ProductCard[];
+  rating: { average: number; count: number } | null;
+}
+
+export interface PublicReview {
+  id: string;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  authorName: string;
+  verified: boolean;
+  createdAt: string;
 }
 
 export interface CategoryNode {
@@ -113,6 +124,14 @@ export const catalog = {
   },
   product: async (slug: string) =>
     (await get<{ data: ProductDetail }>(`/products/${encodeURIComponent(slug)}`)).data,
+  reviews: (slug: string, page = 1) =>
+    get<{
+      data: PublicReview[];
+      meta: { page: number; count: number; totalPages: number; average: number | null };
+    }>(
+      `/products/${encodeURIComponent(slug)}/reviews`,
+      new URLSearchParams({ page: String(page) }),
+    ),
   categories: async () => (await get<{ data: CategoryNode[] }>('/categories')).data,
   brands: async () => (await get<{ data: Brand[] }>('/brands')).data,
   brand: async (slug: string) =>

@@ -333,3 +333,35 @@ Playwright sirve la web con `astro build` + `astro preview` (workerd, el runtime
 ### Correos
 
 Nuevas plantillas: pedido despachado (transportadora, guía y botón de seguimiento si hay URL https) y respuesta a la solicitud de mayorista (aprobada o no). Esta última se conecta en la fase 7, cuando exista el flujo de solicitud.
+
+## 2026-11-08 — Fase 7
+
+### Mi cuenta
+
+- Todo vive bajo `/api/account/*`, detrás de `authenticated`. Ninguna ruta acepta un id de usuario: siempre se usa el de la sesión y un recurso ajeno responde 404.
+- El perfil solo edita nombre, teléfono y documento. El correo no se cambia desde la cuenta (exigiría verificar el nuevo correo; queda fuera del alcance). Los campos que no están en el esquema Zod se ignoran, así nadie puede cambiar su rol ni su estado de mayorista desde el perfil.
+- El historial muestra solo los pedidos con `userId`; las compras como invitado (aunque usen el mismo correo) no se mezclan, porque el correo no prueba que la persona sea dueña de esa compra.
+- El seguimiento usa el historial de estados y el `Shipment` (transportadora, guía y enlace https).
+
+### Lista de deseos y precio mayorista en la ficha
+
+- La ficha sigue siendo HTML del servidor con caché público. El corazón ♥ y el precio mayorista se cargan en el navegador solo si hay sesión (`syl_auth=1`), con la respuesta personalizada marcada `private, no-store`.
+- Sin sesión, el corazón lleva a ingresar y vuelve a la ficha (`next` relativo, validado en el middleware).
+
+### Reseñas
+
+- Solo de compradores verificados: el producto debe estar en un pedido **entregado** del usuario. Una reseña por producto; editarla la devuelve a moderación.
+- Nada se publica sin que el ADMIN la apruebe (`/admin/resenas`, con auditoría). En la tienda se muestra el autor como "Ana G." (nunca el correo ni el nombre completo) y "Compra verificada".
+- La ficha renderiza las reseñas en el servidor, con el promedio y `aggregateRating` + `review` en el JSON-LD de Product.
+- Límite propio para escribir reseñas: 20 por hora por IP.
+
+### Mayoristas
+
+- El cliente solicita desde `/cuenta/mayorista` (nombre del negocio y nota): NONE o REJECTED → PENDING. Si ya está en revisión o aprobado, responde 409.
+- El ADMIN aprueba, rechaza o revoca en `/admin/mayoristas`; queda en la auditoría y el cliente recibe el correo de respuesta.
+- El precio mayorista se sigue calculando solo en el servidor (`pricing.ts`), por línea: cuenta aprobada **y** cantidad de esa presentación ≥ `wholesaleMinQty`. Una cuenta en revisión paga detal.
+
+### Arreglos encontrados por el E2E
+
+- **Contador del carrito:** la lectura inicial del encabezado podía llegar después de "Agregar al carrito" y dejar el contador en 0. Ahora cada cambio del carrito incrementa un contador en `cart-client.ts` y `refreshCartBadge()` descarta su respuesta si hubo un cambio mientras tanto.
+- **Cupón rechazado en el checkout:** si el servidor rechaza el cupón (por ejemplo, ya se usó con ese correo), el checkout dice por qué y pide quitarlo en el carrito, en lugar de un "Revisa los campos marcados" sin campos marcados.

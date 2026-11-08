@@ -89,7 +89,7 @@ export function Dashboard() {
           )}
 
           <div class="grid gap-4 md:grid-cols-[1.4fr_1fr]">
-            <div class="relative overflow-hidden rounded-3xl bg-luna p-6 text-crema">
+            <div class="relative overflow-hidden rounded-3xl bg-luna p-6 pb-24 text-crema sm:pb-6">
               <span
                 aria-hidden="true"
                 class="absolute -right-12 -bottom-16 size-48 rounded-full bg-sol ring-[14px] ring-luna-400/40"
@@ -102,7 +102,7 @@ export function Dashboard() {
                 Pedidos pagados del periodo, ya descontados los reembolsos.
               </p>
             </div>
-            <dl class="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3 md:grid-cols-1">
+            <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3 md:grid-cols-1">
               {[
                 ['Pedidos', String(data.orders)],
                 ['Ticket promedio', formatCOP(data.averageTicket)],
@@ -110,7 +110,9 @@ export function Dashboard() {
               ].map(([label, value]) => (
                 <div key={label} class="rounded-3xl bg-white px-5 py-4 ring-1 ring-luna/10">
                   <dt class="text-sm font-semibold text-noche/80">{label}</dt>
-                  <dd class="font-display text-2xl font-bold break-words text-luna">{value}</dd>
+                  <dd class="font-display text-2xl font-bold whitespace-nowrap text-luna tabular-nums">
+                    {value}
+                  </dd>
                 </div>
               ))}
             </dl>

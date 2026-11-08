@@ -1,0 +1,14 @@
+---
+import AccountShell from '../../../components/account/AccountShell.astro';
+import { AccountOrderDetail } from '../../../components/account/AccountOrders';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const numero = (Astro.params.numero ?? '').toUpperCase();
+if (!/^SYL-\d{6,}$/.test(numero)) return Astro.redirect('/cuenta/pedidos');
+---
+
+<BaseLayout title={`Pedido ${numero}`} noindex>
+  <AccountShell title="Mis pedidos">
+    <AccountOrderDetail client:only="preact" number={numero} />
+  </AccountShell>
+</BaseLayout>

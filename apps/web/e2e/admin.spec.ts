@@ -7,6 +7,8 @@ const ADMIN_PAGES = [
   '/admin/inventario',
   '/admin/comisiones',
   '/admin/liquidaciones',
+  '/admin/mayoristas',
+  '/admin/resenas',
   '/admin/productos',
   '/admin/productos/nuevo',
   '/admin/categorias',

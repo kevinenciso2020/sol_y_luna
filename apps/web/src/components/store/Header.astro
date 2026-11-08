@@ -146,16 +146,10 @@ const q = Astro.url.pathname === '/productos' ? (Astro.url.searchParams.get('q')
 </header>
 
 <script>
-  import { cartApi, setCartCount } from '../../lib/cart-client';
+  import { refreshCartBadge } from '../../lib/cart-client';
 
   // Badge after load, without delaying the page. Only when there might be a cart.
   if (/(?:^|;\s*)syl_auth=1/.test(document.cookie) || sessionStorage.getItem('syl_cart_n')) {
-    cartApi
-      .get()
-      .then((cart) => {
-        setCartCount(cart.itemCount);
-        sessionStorage.setItem('syl_cart_n', String(cart.itemCount));
-      })
-      .catch(() => undefined);
+    refreshCartBadge().catch(() => undefined);
   }
 </script>

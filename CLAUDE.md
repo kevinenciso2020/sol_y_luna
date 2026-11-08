@@ -17,8 +17,8 @@ Proyecto independiente: no copiar código, datos ni configuración de otros repo
 
 ```
 apps/api/prisma/{schema.prisma, migrations/, seed.ts, seed-data.ts}  + prisma.config.ts
-apps/api/src/{config/env.ts, app.ts, server.ts, lib/ (prisma, tokens, crypto, cookies), middleware/ (auth, client-ip, rate-limit), routes/ (auth, addresses, cart, checkout, payments, backoffice, admin/), services/ (auth, email, turnstile, pricing, commission, orders, backoffice, settlements, payments/), jobs/, test/, generated/ (ignorado)}
-apps/web/src/{pages/ (index, productos/, categorias/, marcas/, legal/, verificar-edad.ts, sitemap.xml.ts, robots.txt.ts), components/store/ (ProductCard, ProductMedia, FolkBranch, CatalogView, FilterForm, AgeGate…), middleware.ts, pages/api/[...path].ts (BFF), pages/cuenta|admin|operador/, layouts/, components/, lib/ (auth-client, bff, route-guard, security-headers), scripts/, styles/global.css}
+apps/api/src/{config/env.ts, app.ts, server.ts, lib/ (prisma, tokens, crypto, cookies), middleware/ (auth, client-ip, rate-limit), routes/ (auth, addresses, account, cart, checkout, payments, backoffice, admin/), services/ (auth, account, email, turnstile, pricing, commission, orders, backoffice, settlements, payments/), jobs/, test/, generated/ (ignorado)}
+apps/web/src/{pages/ (index, productos/, categorias/, marcas/, legal/, verificar-edad.ts, sitemap.xml.ts, robots.txt.ts), components/store/ (ProductCard, ProductMedia, FolkBranch, CatalogView, FilterForm, AgeGate…), middleware.ts, pages/api/[...path].ts (BFF), pages/cuenta|admin|operador/, layouts/, components/ (account/, admin/, shop/, store/), lib/ (auth-client, bff, route-guard, security-headers), scripts/, styles/global.css}
 packages/shared/src/{money.ts, constants.ts, schemas.ts, divipola/, index.ts}
 docs/{SPEC.md, DECISIONS.md, DEPLOY.md}
 ```
@@ -63,7 +63,7 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - El access token vive solo en memoria (nunca en localStorage). Refresh token en cookie httpOnly, rotado.
 - Web: el navegador solo habla con su dominio; `/api/*` es el BFF que reenvía a `API_INTERNAL_URL` (solo cabeceras permitidas; agrega `x-client-ip` + `x-bff-secret`).
 - Auth: endpoints en `/api/auth/*`. Rutas protegidas con `requireAuth` + `requireRole`. Endpoints con cookie (refresh, logout) exigen `x-syl-csrf: 1`. Páginas `/admin`, `/operador` y `/cuenta` protegidas en el middleware de Astro con la cookie `syl_session` (validada por la API).
-- Recursos del usuario: siempre filtrar por `userId` en el `where` y responder 404 si no es suyo.
+- Recursos del usuario: siempre filtrar por `userId` en el `where` y responder 404 si no es suyo (`/api/account/*` nunca acepta un id de usuario). Reseñas solo de compradores con pedido entregado y publicadas tras moderación del ADMIN.
 - Mensajes de error de auth genéricos (no revelar si un correo existe).
 - Dinero de pedidos: precios, cupones y comisión SOLO en el servidor (`services/pricing.ts`, `services/commission.ts`). Stock: reservar/liberar con UPDATE condicional (`orders.service.ts`), nunca leer-y-escribir. Eventos de pago siempre por `processPaymentEvent` (idempotente). Reembolsos solo por `backoffice.refund` (reverso de comisión acumulativo); liquidaciones por `settlements.service.ts` (deben cuadrar al peso).
 - Toda mutación del admin escribe `AuditLog` dentro de la misma transacción (`services/audit.ts`). Cambios de stock = `InventoryMovement`.
@@ -90,7 +90,7 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | 4. Tienda                                    | ✅ Completa |
 | 5. Compra y pagos                            | ✅ Completa |
 | 6. Negocio (comisiones, operador, emails)    | ✅ Completa |
-| 7. Cuenta                                    | Pendiente   |
+| 7. Cuenta                                    | ✅ Completa |
 | 8. Despliegue                                | Pendiente   |
 
 Pendientes conocidos: las sesiones KV del adapter de Cloudflare y el servicio `api` de Railway (ya creado y configurado, sin repo conectado) se conecta en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).

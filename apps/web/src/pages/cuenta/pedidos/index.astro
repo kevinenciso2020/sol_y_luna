@@ -1,0 +1,11 @@
+---
+import AccountShell from '../../../components/account/AccountShell.astro';
+import AccountOrders from '../../../components/account/AccountOrders';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Mis pedidos" noindex>
+  <AccountShell title="Mis pedidos">
+    <AccountOrders client:only="preact" />
+  </AccountShell>
+</BaseLayout>

@@ -73,6 +73,13 @@ export interface CategoryNode {
   children: CategoryNode[];
 }
 
+/** "Ana María Gómez" → "Ana G." */
+export function publicAuthorName(name: string): string {
+  const [first = 'Cliente', ...rest] = name.trim().split(/\s+/);
+  const last = rest.at(-1);
+  return last ? `${first} ${last.charAt(0).toUpperCase()}.` : first;
+}
+
 export function createCatalogService(db: Db) {
   return {
     async listProducts(query: CatalogQuery) {
@@ -167,6 +174,11 @@ export function createCatalogService(db: Db) {
         take: 4,
         include: listInclude,
       });
+      const rating = await db.review.aggregate({
+        where: { productId: product.id, status: 'APPROVED' },
+        _avg: { rating: true },
+        _count: { _all: true },
+      });
 
       return {
         id: product.id,
@@ -202,6 +214,52 @@ export function createCatalogService(db: Db) {
           available: Math.max(0, v.stock - v.reservedStock),
         })),
         related: related.map(toProductCard),
+        rating:
+          rating._count._all > 0
+            ? {
+                average: Math.round((rating._avg.rating ?? 0) * 10) / 10,
+                count: rating._count._all,
+              }
+            : null,
+      };
+    },
+
+    /** Approved reviews only, with a public author name ("Ana G."): never emails or full names. */
+    async productReviews(slug: string, page: number, pageSize: number) {
+      const product = await db.product.findFirst({
+        where: { ...VISIBLE_PRODUCT, slug },
+        select: { id: true },
+      });
+      if (!product) return null;
+      const where = { productId: product.id, status: 'APPROVED' } as const;
+      const [stats, reviews] = await Promise.all([
+        db.review.aggregate({ where, _avg: { rating: true }, _count: { _all: true } }),
+        db.review.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: { user: { select: { name: true } } },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      ]);
+      const count = stats._count._all;
+      return {
+        data: reviews.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          title: r.title,
+          comment: r.comment,
+          authorName: publicAuthorName(r.user.name),
+          verified: r.orderId !== null,
+          createdAt: r.createdAt,
+        })),
+        meta: {
+          page,
+          pageSize,
+          count,
+          totalPages: Math.max(1, Math.ceil(count / pageSize)),
+          average: count > 0 ? Math.round((stats._avg.rating ?? 0) * 10) / 10 : null,
+        },
       };
     },
 

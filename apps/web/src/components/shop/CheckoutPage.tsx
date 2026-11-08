@@ -247,8 +247,14 @@ export default function CheckoutPage() {
     } catch (e) {
       const parsed = toFieldErrors(e);
       setErrors(parsed.fields);
+      // The coupon has no field on this page (it is applied in the cart): say what failed.
+      const couponError = parsed.fields['couponCode'];
       setMessage(
-        e instanceof ApiError && e.code === 'CART_CHANGED' ? `${e.message} ` : parsed.message,
+        e instanceof ApiError && e.code === 'CART_CHANGED'
+          ? `${e.message} `
+          : couponError
+            ? `El cupón ${cart?.coupon?.code ?? ''} no se puede usar: ${couponError}. Quítalo en el carrito para continuar.`
+            : parsed.message,
       );
       turnstile.reset();
       setSending(false);

@@ -1,0 +1,11 @@
+---
+import AccountShell from '../../components/account/AccountShell.astro';
+import Wishlist from '../../components/account/Wishlist';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Lista de deseos" noindex>
+  <AccountShell title="Lista de deseos">
+    <Wishlist client:only="preact" />
+  </AccountShell>
+</BaseLayout>

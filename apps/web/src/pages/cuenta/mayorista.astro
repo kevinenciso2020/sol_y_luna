@@ -1,0 +1,11 @@
+---
+import AccountShell from '../../components/account/AccountShell.astro';
+import WholesaleRequest from '../../components/account/WholesaleRequest';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Cuenta mayorista" noindex>
+  <AccountShell title="Cuenta mayorista">
+    <WholesaleRequest client:only="preact" />
+  </AccountShell>
+</BaseLayout>

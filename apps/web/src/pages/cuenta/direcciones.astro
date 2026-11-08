@@ -1,0 +1,11 @@
+---
+import AccountShell from '../../components/account/AccountShell.astro';
+import AddressBook from '../../components/account/AddressBook';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Mis direcciones" noindex>
+  <AccountShell title="Mis direcciones">
+    <AddressBook client:only="preact" />
+  </AccountShell>
+</BaseLayout>

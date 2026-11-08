@@ -1,0 +1,11 @@
+---
+import AccountShell from '../../components/account/AccountShell.astro';
+import MyReviews from '../../components/account/MyReviews';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Mis reseñas" noindex>
+  <AccountShell title="Mis reseñas">
+    <MyReviews client:only="preact" />
+  </AccountShell>
+</BaseLayout>

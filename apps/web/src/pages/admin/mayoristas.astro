@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import WholesaleRequests from '../../components/admin/WholesaleRequests';
+---
+
+<AdminLayout title="Mayoristas">
+  <WholesaleRequests client:only="preact" />
+</AdminLayout>

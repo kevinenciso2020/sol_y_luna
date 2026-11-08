@@ -60,26 +60,49 @@ async function guestFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const shopFetch = <T>(path: string, init: RequestInit = {}) =>
   isSignedIn() ? apiFetch<T>(path, init) : guestFetch<T>(path, init);
 
+/** Bumped by every cart change, so a slower read started earlier never overwrites it. */
+let mutations = 0;
+const mutate = <T>(request: Promise<T>) => {
+  mutations += 1;
+  return request;
+};
+
 export const cartApi = {
   get: (coupon?: string) =>
     shopFetch<{ data: Cart }>(
       `/api/cart${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ''}`,
     ).then((r) => r.data),
   add: (variantId: string, quantity: number) =>
-    shopFetch<{ data: Cart }>('/api/cart/items', {
-      method: 'POST',
-      body: JSON.stringify({ variantId, quantity }),
-    }).then((r) => r.data),
+    mutate(
+      shopFetch<{ data: Cart }>('/api/cart/items', {
+        method: 'POST',
+        body: JSON.stringify({ variantId, quantity }),
+      }),
+    ).then((r) => r.data),
   setQuantity: (variantId: string, quantity: number) =>
-    shopFetch<{ data: Cart }>(`/api/cart/items/${variantId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ quantity }),
-    }).then((r) => r.data),
+    mutate(
+      shopFetch<{ data: Cart }>(`/api/cart/items/${variantId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
+      }),
+    ).then((r) => r.data),
   remove: (variantId: string) =>
-    shopFetch<{ data: Cart }>(`/api/cart/items/${variantId}`, { method: 'DELETE' }).then(
+    mutate(shopFetch<{ data: Cart }>(`/api/cart/items/${variantId}`, { method: 'DELETE' })).then(
       (r) => r.data,
     ),
 };
+
+/**
+ * Loads the header badge after the page renders. If the cart changes while this read is in
+ * flight (e.g. "Agregar al carrito" right after load), the stale answer is discarded.
+ */
+export async function refreshCartBadge() {
+  const started = mutations;
+  const cart = await cartApi.get();
+  if (mutations !== started) return;
+  setCartCount(cart.itemCount);
+  sessionStorage.setItem('syl_cart_n', String(cart.itemCount));
+}
 
 /** Updates every cart badge on the page (header). */
 export function setCartCount(count: number) {
