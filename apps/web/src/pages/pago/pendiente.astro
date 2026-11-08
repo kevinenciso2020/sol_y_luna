@@ -1,0 +1,43 @@
+---
+import OrderSummary from '../../components/shop/OrderSummary.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { lookupPayment, resultPathFor } from '../../lib/orders-server';
+
+const ref = Astro.url.searchParams.get('ref');
+const lookup = await lookupPayment(ref, Astro.request.headers.get('cookie'));
+if (lookup && !resultPathFor(lookup).startsWith('/pago/pendiente'))
+  return Astro.redirect(resultPathFor(lookup));
+const expires = lookup?.order.reservationExpiresAt
+  ? new Intl.DateTimeFormat('es-CO', { timeStyle: 'short', timeZone: 'America/Bogota' }).format(
+      new Date(lookup.order.reservationExpiresAt),
+    )
+  : null;
+---
+
+<BaseLayout title="Pago pendiente" noindex>
+  {lookup && (
+    <meta
+      slot="head"
+      http-equiv="refresh"
+      content={`8;url=/pago/resultado?ref=${encodeURIComponent(lookup.reference)}`}
+    />
+  )}
+  <section class="mx-auto max-w-3xl px-4 pt-8 pb-10">
+    <p
+      class="grid size-16 place-items-center rounded-full bg-crema-300 text-3xl"
+      aria-hidden="true"
+    >
+      ⏳
+    </p>
+    <h1 class="mt-4 text-4xl sm:text-5xl">Tu pago está pendiente</h1>
+    <p class="mt-3 max-w-[52ch] text-lg">
+      Estamos esperando la confirmación del medio de pago. Esta página se actualiza sola.
+      {expires && ` Apartamos tus productos hasta las ${expires}.`}
+    </p>
+    {lookup && (
+      <div class="mt-8">
+        <OrderSummary order={lookup.order} />
+      </div>
+    )}
+  </section>
+</BaseLayout>

@@ -14,6 +14,8 @@ export const VERIFY_TOKEN_TTL_HOURS = 24;
 export const REFRESH_COOKIE = 'syl_refresh';
 export const REFRESH_COOKIE_PATH = '/api/auth';
 export const SESSION_COOKIE = 'syl_session';
+/** Non-secret hint ("1") readable by scripts: tells the browser a session exists, nothing more. */
+export const AUTH_HINT_COOKIE = 'syl_auth';
 
 export const passwordSchema = z
   .string({ error: 'Escribe una contraseña' })

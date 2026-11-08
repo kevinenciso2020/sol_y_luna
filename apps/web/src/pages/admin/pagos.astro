@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import PaymentsSettings from '../../components/admin/PaymentsSettings';
+---
+
+<AdminLayout title="Pagos">
+  <PaymentsSettings client:only="preact" />
+</AdminLayout>

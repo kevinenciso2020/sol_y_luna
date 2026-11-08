@@ -1,5 +1,6 @@
 import type { CookieOptions, Response } from 'express';
 import {
+  AUTH_HINT_COOKIE,
   REFRESH_COOKIE,
   REFRESH_COOKIE_PATH,
   REFRESH_TOKEN_TTL_DAYS,
@@ -23,9 +24,17 @@ export function setAuthCookies(
     maxAge,
   });
   res.cookie(SESSION_COOKIE, tokens.sessionToken, { ...base(secure), path: '/', maxAge });
+  res.cookie(AUTH_HINT_COOKIE, '1', {
+    httpOnly: false,
+    secure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge,
+  });
 }
 
 export function clearAuthCookies(res: Response, secure: boolean) {
   res.clearCookie(REFRESH_COOKIE, { ...base(secure), path: REFRESH_COOKIE_PATH });
   res.clearCookie(SESSION_COOKIE, { ...base(secure), path: '/' });
+  res.clearCookie(AUTH_HINT_COOKIE, { httpOnly: false, secure, sameSite: 'lax', path: '/' });
 }

@@ -1,0 +1,49 @@
+---
+import { formatCOP } from '@sol-y-luna/shared';
+import type { OrderDto } from '../../lib/orders-server';
+
+interface Props {
+  order: OrderDto;
+}
+const { order } = Astro.props;
+---
+
+<section
+  class="rounded-[1.75rem] bg-white p-5 ring-1 ring-luna/10 sm:p-6"
+  aria-labelledby="detalle-pedido"
+>
+  <h2 id="detalle-pedido" class="text-2xl">
+    Pedido {order.number}
+  </h2>
+  <ul class="mt-4 space-y-2 text-sm">
+    {order.items.map((i) => (
+      <li class="flex justify-between gap-3">
+        <span>
+          {i.productName} · {i.variantName} × {i.quantity}
+        </span>
+        <span class="shrink-0 font-semibold">{formatCOP(i.lineTotal)}</span>
+      </li>
+    ))}
+  </ul>
+  <dl class="mt-4 space-y-1 border-t border-luna/15 pt-3">
+    {order.discount > 0 && (
+      <div class="flex justify-between text-luna">
+        <dt>Descuento {order.couponCode && `(${order.couponCode})`}</dt>
+        <dd>−{formatCOP(order.discount)}</dd>
+      </div>
+    )}
+    <div class="flex justify-between">
+      <dt>Envío</dt>
+      <dd class="font-semibold text-luna">Gratis</dd>
+    </div>
+    <div class="flex justify-between font-display text-2xl font-black">
+      <dt>Total</dt>
+      <dd>{formatCOP(order.total)}</dd>
+    </div>
+  </dl>
+  <p class="mt-4 text-sm text-noche/80">
+    Entrega a {order.shipping.recipientName}: {order.shipping.addressLine},{' '}
+    {order.shipping.municipality} ({order.shipping.department}).
+    {order.discreetPackaging && ' Con empaque discreto.'}
+  </p>
+</section>

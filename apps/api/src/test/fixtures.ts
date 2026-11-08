@@ -13,4 +13,5 @@ export const validEnvSource = {
   LOG_LEVEL: 'silent',
 } satisfies NodeJS.ProcessEnv;
 
-export const testEnv = () => loadEnv({ ...validEnvSource });
+export const testEnv = (overrides: Record<string, string> = {}) =>
+  loadEnv({ ...validEnvSource, ...overrides });

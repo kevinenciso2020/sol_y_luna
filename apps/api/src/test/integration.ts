@@ -5,6 +5,7 @@ import { createLogger } from '../lib/logger.js';
 import { createPrismaClient, type Db } from '../lib/prisma.js';
 import { DEFAULT_RATE_LIMITS, type RateLimits } from '../middleware/rate-limit.js';
 import type { CloudinaryService } from '../services/cloudinary.js';
+import type { MercadoPago } from '../services/payments/mercadopago.js';
 import { createMemoryEmailSender } from '../services/email.js';
 import { testEnv } from './fixtures.js';
 
@@ -33,10 +34,16 @@ const noLimits: RateLimits = Object.fromEntries(
 ) as unknown as RateLimits;
 
 export function buildTestApp(
-  options: { rateLimits?: RateLimits; turnstileOk?: boolean; cloudinary?: CloudinaryService } = {},
+  options: {
+    rateLimits?: RateLimits;
+    turnstileOk?: boolean;
+    cloudinary?: CloudinaryService;
+    env?: Record<string, string>;
+    mercadoPago?: MercadoPago | null;
+  } = {},
 ) {
   const email = createMemoryEmailSender();
-  const env = testEnv();
+  const env = testEnv(options.env);
   const app = createApp(env, createLogger({ level: 'silent', pretty: false }), {
     db: getTestDb(),
     email,
@@ -44,6 +51,7 @@ export function buildTestApp(
     checkDatabase: async () => {},
     rateLimits: options.rateLimits ?? noLimits,
     ...(options.cloudinary ? { cloudinary: options.cloudinary } : {}),
+    ...(options.mercadoPago !== undefined ? { mercadoPago: options.mercadoPago } : {}),
   });
   return { app, email, env };
 }

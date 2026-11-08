@@ -1,0 +1,79 @@
+---
+import OrderSummary from '../../components/shop/OrderSummary.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { lookupPayment, resultPathFor } from '../../lib/orders-server';
+
+const lookup = await lookupPayment(
+  Astro.url.searchParams.get('ref'),
+  Astro.request.headers.get('cookie'),
+);
+if (lookup && !resultPathFor(lookup).startsWith('/pago/rechazado'))
+  return Astro.redirect(resultPathFor(lookup));
+const cancelled = lookup?.order.status === 'CANCELLED';
+---
+
+<BaseLayout title="Pago rechazado" noindex>
+  <section class="mx-auto max-w-3xl px-4 pt-8 pb-10">
+    <p
+      class="grid size-16 place-items-center rounded-full bg-sol-100 text-3xl text-sol-800"
+      aria-hidden="true"
+    >
+      !
+    </p>
+    <h1 class="mt-4 text-4xl sm:text-5xl">
+      {cancelled ? 'El pedido se canceló' : 'El pago no se aprobó'}
+    </h1>
+    <p class="mt-3 max-w-[52ch] text-lg">
+      {cancelled
+        ? 'No recibimos el pago a tiempo y liberamos los productos. Puedes volver a hacer el pedido.'
+        : 'No se hizo ningún cobro. Puedes intentarlo de nuevo con el mismo u otro medio de pago.'}
+    </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+      {lookup && !cancelled && (
+        <button type="button" data-retry={lookup.order.number} class="pill-cta">
+          Intentar de nuevo <span aria-hidden="true">→</span>
+        </button>
+      )}
+      <a
+        href="/carrito"
+        class="inline-flex min-h-12 items-center rounded-full border-2 border-luna px-5 font-semibold text-luna hover:bg-luna-50"
+      >
+        Volver al carrito
+      </a>
+    </div>
+    <p
+      data-retry-status
+      role="status"
+      aria-live="polite"
+      class="mt-3 text-sm font-medium text-sol-700 empty:hidden"
+    ></p>
+    {lookup && (
+      <div class="mt-8">
+        <OrderSummary order={lookup.order} />
+      </div>
+    )}
+  </section>
+</BaseLayout>
+
+<script>
+  import { ApiError } from '../../lib/auth-client';
+  import { shopFetch } from '../../lib/cart-client';
+
+  const button = document.querySelector<HTMLButtonElement>('[data-retry]');
+  const status = document.querySelector<HTMLElement>('[data-retry-status]');
+  button?.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      const res = await shopFetch<{ data: { redirectUrl: string } }>(
+        `/api/orders/${button.dataset['retry']}/retry`,
+        { method: 'POST', body: '{}' },
+      );
+      window.location.assign(res.data.redirectUrl);
+    } catch (error) {
+      if (status)
+        status.textContent =
+          error instanceof ApiError ? error.message : 'No pudimos reintentar. Intenta de nuevo.';
+      button.disabled = false;
+    }
+  });
+</script>

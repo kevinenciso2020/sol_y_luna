@@ -93,3 +93,62 @@ jobs:
         run: pnpm format:check
       - name: Audit
         run: pnpm audit --audit-level=high
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: solyluna_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Throwaway values for an isolated CI run (not secrets of any real environment).
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/solyluna_e2e
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/solyluna_e2e
+      CORS_ORIGINS: http://localhost:4400
+      WEB_URL: http://localhost:4400
+      API_URL: http://localhost:4100
+      ADMIN_SEED_EMAIL: admin@solyluna.test
+      OPERATOR_SEED_EMAIL: operador@solyluna.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Secretos efímeros de la corrida
+        run: |
+          {
+            echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)"
+            echo "REFRESH_TOKEN_PEPPER=$(openssl rand -hex 32)"
+            echo "ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "BFF_SHARED_SECRET=$(openssl rand -hex 32)"
+            echo "ADMIN_SEED_PASSWORD=$(openssl rand -hex 12)"
+            echo "OPERATOR_SEED_PASSWORD=$(openssl rand -hex 12)"
+            echo "CUSTOMER_SEED_PASSWORD=$(openssl rand -hex 12)"
+          } >> "$GITHUB_ENV"
+      - name: Variables de la web
+        run: printf 'API_INTERNAL_URL=http://localhost:4100\nBFF_SHARED_SECRET=%s\n' "$BFF_SHARED_SECRET" > apps/web/.env
+      - run: pnpm build:shared
+      - name: Instalar Chromium
+        run: pnpm --filter @sol-y-luna/web exec playwright install --with-deps chromium
+      - name: Playwright
+        run: pnpm --filter @sol-y-luna/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: apps/web/test-results
+          retention-days: 7

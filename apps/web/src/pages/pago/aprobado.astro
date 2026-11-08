@@ -1,0 +1,56 @@
+---
+import FolkBranch from '../../components/store/FolkBranch.astro';
+import OrderSummary from '../../components/shop/OrderSummary.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { lookupPayment, resultPathFor } from '../../lib/orders-server';
+
+const lookup = await lookupPayment(
+  Astro.url.searchParams.get('ref'),
+  Astro.request.headers.get('cookie'),
+);
+if (
+  lookup &&
+  resultPathFor(lookup).startsWith('/pago/') &&
+  !resultPathFor(lookup).startsWith('/pago/aprobado')
+) {
+  return Astro.redirect(resultPathFor(lookup));
+}
+---
+
+<BaseLayout title="Pago aprobado" noindex>
+  <section class="relative mx-auto max-w-3xl overflow-hidden px-4 pt-8 pb-10">
+    <FolkBranch tone="sol" class="pointer-events-none absolute -top-4 -right-10 size-36" />
+    <p
+      class="grid size-16 place-items-center rounded-full bg-luna text-3xl text-crema"
+      aria-hidden="true"
+    >
+      ✓
+    </p>
+    <h1 class="mt-4 text-4xl sm:text-5xl">¡Pago aprobado!</h1>
+    {lookup ? (
+      <>
+        <p class="mt-3 max-w-[52ch] text-lg">
+          Gracias, {lookup.order.customerName.split(' ')[0]}. Tu pedido{' '}
+          <strong>{lookup.order.number}</strong> ya está pago. Te escribimos a {lookup.order.email}{' '}
+          con la guía cuando salga.
+        </p>
+        <div class="mt-8">
+          <OrderSummary order={lookup.order} />
+        </div>
+      </>
+    ) : (
+      <p class="mt-3">Te enviamos la confirmación por correo.</p>
+    )}
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="/productos" class="pill-cta">
+        Seguir comprando <span aria-hidden="true">→</span>
+      </a>
+      <a
+        href="/cuenta"
+        class="inline-flex min-h-12 items-center rounded-full px-5 font-semibold text-luna hover:bg-luna-50"
+      >
+        Ver mi cuenta
+      </a>
+    </div>
+  </section>
+</BaseLayout>

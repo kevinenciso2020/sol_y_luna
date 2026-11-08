@@ -9,6 +9,7 @@ const ADMIN_PAGES = [
   '/admin/marcas',
   '/admin/cupones',
   '/admin/usuarios',
+  '/admin/pagos',
   '/admin/configuracion',
   '/admin/auditoria',
 ];

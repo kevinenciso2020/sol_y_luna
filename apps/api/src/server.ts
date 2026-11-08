@@ -4,6 +4,8 @@ import { createPrismaClient } from './lib/prisma.js';
 import { createApp } from './app.js';
 import { createLogEmailSender, createResendEmailSender } from './services/email.js';
 import { createTurnstileVerifier } from './services/turnstile.js';
+import { startScheduler } from './jobs/scheduler.js';
+import { DEFAULT_RATE_LIMITS, type RateLimits } from './middleware/rate-limit.js';
 
 let env: Env;
 try {
@@ -30,6 +32,17 @@ const app = createApp(env, logger, {
   turnstile: createTurnstileVerifier({ secret: env.TURNSTILE_SECRET_KEY, logger }),
   checkDatabase: async () => {
     await prisma.$queryRaw`SELECT 1`;
+  },
+  // E2E runs (NODE_ENV=test) hammer the API from one IP: relax the limits there only.
+  ...(env.NODE_ENV === 'test'
+    ? {
+        rateLimits: Object.fromEntries(
+          Object.entries(DEFAULT_RATE_LIMITS).map(([k, v]) => [k, { ...v, limit: v.limit * 50 }]),
+        ) as unknown as RateLimits,
+      }
+    : {}),
+  onReady: ({ orders }) => {
+    startScheduler({ orders, logger });
   },
 });
 

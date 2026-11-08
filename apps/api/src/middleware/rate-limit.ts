@@ -13,8 +13,10 @@ export interface RateLimits {
   register: RateLimitConfig;
   passwordReset: RateLimitConfig;
   refresh: RateLimitConfig;
-  /** Used later by checkout, reviews and webhooks. */
+  /** Checkout, payment retries, simulated payments and reviews. */
   sensitive: RateLimitConfig;
+  /** Payment gateways may retry in bursts. */
+  webhooks: RateLimitConfig;
 }
 
 export const DEFAULT_RATE_LIMITS: RateLimits = {
@@ -24,6 +26,7 @@ export const DEFAULT_RATE_LIMITS: RateLimits = {
   passwordReset: { limit: 5, windowMs: 15 * 60_000 },
   refresh: { limit: 60, windowMs: 15 * 60_000 },
   sensitive: { limit: 30, windowMs: 15 * 60_000 },
+  webhooks: { limit: 300, windowMs: 60_000 },
 };
 
 /**

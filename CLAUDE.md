@@ -34,7 +34,7 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - `pnpm test` — unitarias + integración (la API usa `TEST_DATABASE_URL` de `apps/api/.env.test`, rama `test` de Neon)
 - `pnpm build`
 - `pnpm format` / `pnpm format:check`
-- `pnpm e2e` — Playwright (mobile + desktop) contra la rama `test`; requiere `apps/api/.env` y `.env.test`
+- `pnpm e2e` — Playwright (mobile + desktop) contra el build de producción (workerd) y la rama `test`; requiere `apps/api/.env` y `.env.test`
 - `pnpm --filter @sol-y-luna/web preview` — build en workerd local (usa `apps/web/.dev.vars`)
 - `pnpm db:migrate` — `prisma migrate dev` (solo contra la rama `dev` de Neon)
 - `pnpm db:deploy` — `prisma migrate deploy` (producción)
@@ -65,6 +65,7 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - Auth: endpoints en `/api/auth/*`. Rutas protegidas con `requireAuth` + `requireRole`. Endpoints con cookie (refresh, logout) exigen `x-syl-csrf: 1`. Páginas `/admin`, `/operador` y `/cuenta` protegidas en el middleware de Astro con la cookie `syl_session` (validada por la API).
 - Recursos del usuario: siempre filtrar por `userId` en el `where` y responder 404 si no es suyo.
 - Mensajes de error de auth genéricos (no revelar si un correo existe).
+- Dinero de pedidos: precios, cupones y comisión SOLO en el servidor (`services/pricing.ts`, `services/commission.ts`). Stock: reservar/liberar con UPDATE condicional (`orders.service.ts`), nunca leer-y-escribir. Eventos de pago siempre por `processPaymentEvent` (idempotente).
 - Toda mutación del admin escribe `AuditLog` dentro de la misma transacción (`services/audit.ts`). Cambios de stock = `InventoryMovement`.
 - Imágenes: solo `publicId` de la carpeta de Cloudinary de la tienda o `/placeholders/*.svg`; en la web usar `imageUrl()` (f_auto,q_auto + ancho).
 
@@ -87,9 +88,9 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | 2. Auth y seguridad                          | ✅ Completa |
 | 3. Catálogo y admin                          | ✅ Completa |
 | 4. Tienda                                    | ✅ Completa |
-| 5. Compra y pagos                            | Pendiente   |
+| 5. Compra y pagos                            | ✅ Completa |
 | 6. Negocio (comisiones, operador, emails)    | Pendiente   |
 | 7. Cuenta                                    | Pendiente   |
 | 8. Despliegue                                | Pendiente   |
 
-Pendientes conocidos: el job E2E del CI llega en la fase 5 (junto con el carrito, que se monta en `data-cart-slot` de la ficha); las sesiones KV del adapter de Cloudflare y el servicio `api` de Railway (ya creado y configurado, sin repo conectado) se conecta en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).
+Pendientes conocidos: las sesiones KV del adapter de Cloudflare y el servicio `api` de Railway (ya creado y configurado, sin repo conectado) se conecta en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).

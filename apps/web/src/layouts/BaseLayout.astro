@@ -64,6 +64,7 @@ const ogImage = new URL(image ?? '/og-default.png', site).toString();
     {structuredData && (
       <script type="application/ld+json" is:inline set:html={jsonLd(structuredData)} />
     )}
+    <slot name="head" />
   </head>
   <body
     class:list={[

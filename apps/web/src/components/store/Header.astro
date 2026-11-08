@@ -57,6 +57,35 @@ const q = Astro.url.pathname === '/productos' ? (Astro.url.searchParams.get('q')
       </svg>
       <span class="sr-only sm:not-sr-only">Mi cuenta</span>
     </a>
+    <a
+      href="/carrito"
+      class="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-luna hover:bg-luna-50"
+    >
+      <span class="sr-only" data-cart-label>
+        Carrito
+      </span>
+      <svg
+        viewBox="0 0 24 24"
+        class="size-6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 7h14l-1.5 11a2 2 0 0 1-2 1.7h-7a2 2 0 0 1-2-1.7L5 7Z"></path>
+        <path d="M9 7a3 3 0 0 1 6 0"></path>
+      </svg>
+      <span
+        data-cart-count
+        hidden
+        class="absolute -top-0.5 -right-0.5 grid min-w-5 place-items-center rounded-full bg-sol-600 px-1 text-xs font-bold text-white"
+        aria-hidden="true"
+      >
+        0
+      </span>
+    </a>
     <details class="group lg:hidden">
       <summary class="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-full text-luna hover:bg-luna-50 [&::-webkit-details-marker]:hidden">
         <span class="sr-only">Menú</span>
@@ -115,3 +144,18 @@ const q = Astro.url.pathname === '/productos' ? (Astro.url.searchParams.get('q')
     </details>
   </div>
 </header>
+
+<script>
+  import { cartApi, setCartCount } from '../../lib/cart-client';
+
+  // Badge after load, without delaying the page. Only when there might be a cart.
+  if (/(?:^|;\s*)syl_auth=1/.test(document.cookie) || sessionStorage.getItem('syl_cart_n')) {
+    cartApi
+      .get()
+      .then((cart) => {
+        setCartCount(cart.itemCount);
+        sessionStorage.setItem('syl_cart_n', String(cart.itemCount));
+      })
+      .catch(() => undefined);
+  }
+</script>

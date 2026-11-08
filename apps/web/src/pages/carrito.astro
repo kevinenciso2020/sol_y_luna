@@ -1,0 +1,13 @@
+---
+import CartPage from '../components/shop/CartPage';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Carrito" noindex>
+  <div class="mx-auto max-w-6xl px-4 pt-4 pb-8">
+    <h1 class="text-4xl sm:text-5xl">Tu carrito</h1>
+    <div class="mt-6">
+      <CartPage client:only="preact" />
+    </div>
+  </div>
+</BaseLayout>

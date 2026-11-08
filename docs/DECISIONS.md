@@ -256,3 +256,43 @@ Canonical en todas las páginas (los filtros apuntan a la URL limpia del catálo
 ### Botón "Agregar al carrito"
 
 La ficha deja reservado el espacio (`data-cart-slot`) para el botón del carrito de la fase 5. Mientras tanto, si hay número de WhatsApp configurado, muestra "Pregunta por WhatsApp".
+
+## 2026-11-08 — Fase 5
+
+### Carrito
+
+- Invitado: cookie `syl_cart` httpOnly (30 días) con un token opaco; en la base solo se guarda su HMAC. Usuario: un carrito por cuenta.
+- Al iniciar sesión, el carrito de invitado se une con el del usuario: se suman las cantidades (con tope en el stock disponible) y se borra el de invitado.
+- El servidor calcula todos los precios (detal o mayorista por línea, cupón, envío gratis); el cliente nunca envía precios. Agregar más de lo disponible responde 409 con el número de unidades que quedan.
+- Cookie `syl_auth=1` (no httpOnly, sin secretos) para que el navegador sepa si hay sesión y elija entre `apiFetch` (Bearer) o la cookie de invitado sin llamar a la API en cada página.
+
+### Checkout y reservas
+
+- Reserva atómica con `UPDATE ... SET reservedStock = reservedStock + n WHERE stock - reservedStock >= n`: nunca se vende más de lo que hay, aunque lleguen varios checkouts en paralelo (probado con 3 compras simultáneas de la última unidad).
+- El pedido guarda copias de la dirección (con los nombres DIVIPOLA), los productos y los precios, el cupón (re-validado en la transacción, con el email para limitar a invitados), los términos aceptados y la reserva de 30 minutos. El uso del cupón se incrementa con condición (`usedCount < maxUses`).
+- Invitados: Turnstile obligatorio y token de acceso al pedido en la cookie httpOnly `syl_pedido` (7 días; en la base solo el hash). Con eso ven las páginas de resultado y pueden reintentar el pago. Un pedido ajeno responde 404.
+- Pago rechazado → `PAYMENT_FAILED` y la reserva se libera. "Intentar de nuevo" vuelve a reservar el stock y crea un pago nuevo (`PAYMENT_FAILED → PENDING_PAYMENT`).
+
+### Pagos
+
+- Interfaz común `PaymentProvider` (`createCheckout`). Los eventos se normalizan a `PaymentEvent` y pasan por un único `processPaymentEvent`.
+- Idempotencia: `WebhookEvent` único por `(provider, externalEventId)` se crea en la misma transacción que aplica el evento; un duplicado responde 200 sin reprocesar. IDs de evento: Wompi `transaction.id:status`; Mercado Pago `payment:id:status`.
+- Aprobación en una sola transacción: el pedido pasa a PAID, se descuenta el stock y se libera la reserva en un solo `UPDATE`, se crean los movimientos `RELEASE` y `SALE`, se congela la comisión y se escribe el historial. El email se envía después.
+- Si el monto no coincide con el total (o el pedido ya no estaba pendiente): `needsReview` con el motivo, sin aprobar y sin tocar el stock.
+- Comisión por línea según la regla más específica (PRODUCT > CATEGORY > GLOBAL, prefiriendo la del nivel de precio). La base es el total de la línea menos su parte proporcional del descuento; el valor fijo por pedido sale de la regla GLOBAL. Se guardan la tasa efectiva, el monto y la regla (o null si se mezclaron). `merchantNetAmount = total − comisión − comisión de la pasarela`. `commissionAfterRefund` queda lista para la fase 6.
+- **Mock**: página `/pago/simulado` (solo con modo demo o sin credenciales). Solo puede usarla el dueño del pedido (sesión o cookie del pedido).
+- **Wompi**: checkout web con `signature:integrity = SHA256(referencia + centavos + COP + secreto)`. El webhook verifica el checksum (valores de `signature.properties` + `timestamp` + secreto) en tiempo constante.
+- **Mercado Pago**: verificación de `x-signature` (HMAC-SHA256 sobre `id:{data.id};request-id:{x-request-id};ts:{ts};`) y luego consulta de `/v1/payments/{id}`, porque nunca se confía en el body. Modo marketplace: OAuth del comercio desde `/admin/pagos` (`state` firmado con HMAC y vencimiento de 10 minutos), tokens cifrados con AES-256-GCM (`ENCRYPTION_KEY`), renovación automática cuando falta menos de un día, y `marketplace_fee` = comisión estimada. Modo directo: `MP_ACCESS_TOKEN`, sin split. Si el comercio no ha conectado su cuenta, Mercado Pago no se ofrece en el checkout.
+- La URL de retorno del OAuth es `{API_URL}/api/payments/mercadopago/oauth/callback`.
+
+### Job de reservas vencidas
+
+Scheduler dentro del proceso: cada 60 s, con protección contra ejecuciones solapadas en el mismo proceso, y `pg_try_advisory_xact_lock` para que dos instancias no lo corran a la vez (funciona a través del pooler de Neon). Cancela los pedidos `PENDING_PAYMENT` con la reserva vencida, libera el stock y anula el pago pendiente.
+
+### Rate limit
+
+Nuevo límite `webhooks` (300/min). Checkout, reintento y pago simulado usan `sensitive`. Con `NODE_ENV=test` (servidor de E2E) los límites se multiplican por 50.
+
+### E2E contra el build de producción
+
+Playwright sirve la web con `astro build` + `astro preview` (workerd, el runtime de Cloudflare) en lugar del servidor de desarrollo, que compilaba cada página en la primera visita y hacía las pruebas lentas e inestables. El CI tiene un job `E2E (Playwright)` con Postgres 18 y secretos efímeros generados en cada corrida.

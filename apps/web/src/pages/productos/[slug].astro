@@ -229,13 +229,68 @@ Astro.response.headers.set(
             </div>
           </fieldset>
 
-          <div class="mt-6 flex flex-wrap gap-3" data-cart-slot>
+          <form class="mt-6 space-y-3" data-add-to-cart novalidate>
+            <div class="flex flex-wrap items-end gap-3">
+              <div>
+                <label for="cantidad" class="block text-sm font-semibold">
+                  Cantidad
+                </label>
+                <div class="mt-1 flex items-center rounded-full border-2 border-luna/25 bg-white">
+                  <button
+                    type="button"
+                    data-qty-step="-1"
+                    class="grid size-11 place-items-center rounded-full text-xl font-bold text-luna hover:bg-luna-50"
+                    aria-label="Quitar una unidad"
+                  >
+                    −
+                  </button>
+                  <input
+                    id="cantidad"
+                    name="cantidad"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    max="200"
+                    value="1"
+                    class="w-12 [appearance:textfield] bg-transparent text-center text-lg font-semibold outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    data-qty-step="1"
+                    class="grid size-11 place-items-center rounded-full text-xl font-bold text-luna hover:bg-luna-50"
+                    aria-label="Agregar una unidad"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                class="pill-cta min-h-12 flex-1 justify-center sm:flex-none"
+                data-add-button
+                disabled={first.available === 0}
+              >
+                {first.available === 0 ? 'Agotado' : 'Agregar al carrito'}
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <p
+              data-add-status
+              role="status"
+              aria-live="polite"
+              class="text-sm font-medium empty:hidden"
+            ></p>
             {ask && (
-              <a href={ask} target="_blank" rel="noopener noreferrer" class="pill-cta">
-                Pregunta por WhatsApp <span aria-hidden="true">→</span>
+              <a
+                href={ask}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex min-h-11 items-center font-semibold text-luna underline-offset-4 hover:underline"
+              >
+                ¿Dudas? Pregunta por WhatsApp
               </a>
             )}
-          </div>
+          </form>
 
           <ul class="mt-6 flex flex-wrap gap-2 text-sm">
             <li class="pill-attr">Envío gratis</li>
@@ -365,6 +420,55 @@ Astro.response.headers.set(
         compare.classList.toggle('hidden', !value);
       }
     });
+  });
+
+  // Add to cart.
+  import { ApiError } from '../../lib/auth-client';
+  import { cartApi, setCartCount } from '../../lib/cart-client';
+
+  const form = document.querySelector<HTMLFormElement>('[data-add-to-cart]');
+  const qty = form?.querySelector<HTMLInputElement>('input[name="cantidad"]');
+  const addButton = form?.querySelector<HTMLButtonElement>('[data-add-button]');
+  const status = form?.querySelector<HTMLElement>('[data-add-status]');
+  const selected = () => document.querySelector<HTMLInputElement>('input[name="variante"]:checked');
+
+  const syncAvailability = () => {
+    const available = Number(selected()?.dataset['available'] ?? '0');
+    if (!addButton || !qty) return;
+    addButton.disabled = available === 0;
+    addButton.firstChild!.textContent = available === 0 ? 'Agotado ' : 'Agregar al carrito ';
+    qty.max = String(Math.max(1, Math.min(200, available)));
+  };
+  document
+    .querySelectorAll<HTMLInputElement>('input[name="variante"]')
+    .forEach((i) => i.addEventListener('change', syncAvailability));
+  form?.querySelectorAll<HTMLButtonElement>('[data-qty-step]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!qty) return;
+      const next = Number(qty.value || '1') + Number(button.dataset['qtyStep']);
+      qty.value = String(Math.min(Number(qty.max || '200'), Math.max(1, next)));
+    });
+  });
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const variant = selected();
+    if (!variant || !addButton || !status) return;
+    addButton.disabled = true;
+    status.className = 'text-sm font-medium empty:hidden';
+    try {
+      const cart = await cartApi.add(variant.value, Math.max(1, Number(qty?.value || '1')));
+      setCartCount(cart.itemCount);
+      sessionStorage.setItem('syl_cart_n', String(cart.itemCount));
+      status.classList.add('text-luna');
+      status.innerHTML =
+        'Listo, lo agregamos. <a href="/carrito" class="font-bold underline">Ver carrito →</a>';
+    } catch (error) {
+      status.classList.add('text-sol-700');
+      status.textContent =
+        error instanceof ApiError ? error.message : 'No pudimos agregarlo. Intenta de nuevo.';
+    } finally {
+      syncAvailability();
+    }
   });
 
   // Gallery thumbnails.

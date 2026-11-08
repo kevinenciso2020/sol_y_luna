@@ -71,3 +71,59 @@ export function passwordChangedTemplate(input: { name: string }) {
   const text = `La contraseña de tu cuenta de Sol y Luna cambió y cerramos tus sesiones. Si no fuiste tú, recupérala de inmediato.`;
   return { subject, html, text };
 }
+
+interface OrderEmailData {
+  number: string;
+  customerName: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  discreetPackaging: boolean;
+  items: { productName: string; variantName: string; quantity: number; lineTotal: number }[];
+  shipping: {
+    recipientName: string;
+    addressLine: string;
+    municipality: string;
+    department: string;
+  };
+}
+
+const cop = (n: number) => `$${n.toLocaleString('es-CO')}`;
+
+function orderTable(order: OrderEmailData) {
+  const rows = order.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 0">${escapeHtml(i.productName)} · ${escapeHtml(i.variantName)} × ${i.quantity}</td><td style="padding:6px 0;text-align:right">${cop(i.lineTotal)}</td></tr>`,
+    )
+    .join('');
+  return `<table role="presentation" width="100%" style="border-collapse:collapse;font-size:15px">${rows}
+<tr><td style="padding-top:10px;border-top:1px solid #d9e3f8">Subtotal</td><td style="padding-top:10px;border-top:1px solid #d9e3f8;text-align:right">${cop(order.subtotal)}</td></tr>
+${order.discount ? `<tr><td>Descuento</td><td style="text-align:right">-${cop(order.discount)}</td></tr>` : ''}
+<tr><td>Envío</td><td style="text-align:right">Gratis</td></tr>
+<tr><td style="font-weight:bold;font-size:17px">Total</td><td style="font-weight:bold;font-size:17px;text-align:right">${cop(order.total)}</td></tr></table>
+<p style="font-size:14px;margin-top:16px">Entrega a ${escapeHtml(order.shipping.recipientName)}: ${escapeHtml(order.shipping.addressLine)}, ${escapeHtml(order.shipping.municipality)} (${escapeHtml(order.shipping.department)}).${order.discreetPackaging ? ' Con empaque discreto.' : ''}</p>`;
+}
+
+const orderText = (order: OrderEmailData) =>
+  `${order.items.map((i) => `- ${i.productName} · ${i.variantName} x${i.quantity}: ${cop(i.lineTotal)}`).join('\n')}\nTotal: ${cop(order.total)} (envío gratis)`;
+
+export function orderReceivedTemplate(input: { order: OrderEmailData; link: string }) {
+  const subject = `Recibimos tu pedido ${input.order.number}`;
+  const html = layout(
+    subject,
+    `<p>Hola, ${escapeHtml(input.order.customerName)}.</p><p>Recibimos tu pedido <strong>${input.order.number}</strong>. Apartamos los productos por 30 minutos mientras se confirma el pago.</p>${orderTable(input.order)}`,
+  );
+  const text = `Recibimos tu pedido ${input.order.number}. Apartamos los productos por 30 minutos mientras se confirma el pago.\n${orderText(input.order)}`;
+  return { subject, html, text };
+}
+
+export function orderPaidTemplate(input: { order: OrderEmailData }) {
+  const subject = `Pago confirmado: pedido ${input.order.number}`;
+  const html = layout(
+    subject,
+    `<p>Hola, ${escapeHtml(input.order.customerName)}.</p><p>Confirmamos el pago de tu pedido <strong>${input.order.number}</strong>. Lo preparamos y te avisamos con la guía cuando salga.</p>${orderTable(input.order)}`,
+  );
+  const text = `Confirmamos el pago de tu pedido ${input.order.number}. Te avisamos con la guía cuando salga.\n${orderText(input.order)}`;
+  return { subject, html, text };
+}

@@ -12,6 +12,8 @@ export default defineConfig({
   workers: 1,
   retries: process.env['CI'] ? 1 : 0,
   timeout: 60_000,
+  // Dev server compiles each page on first visit: give navigations some room.
+  expect: { timeout: 15_000 },
   reporter: process.env['CI'] ? 'github' : 'list',
   globalSetup: './e2e/global-setup.ts',
   use: {
@@ -38,12 +40,11 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
-      // --ignore-lock keeps astro in the foreground (Astro 7 backgrounds itself when run by agents).
-      command: 'pnpm exec astro dev --port 4400 --ignore-lock',
+      // Production build served by workerd (same runtime as Cloudflare), not the dev server.
+      command: 'node e2e/serve-web.mjs',
       url: WEB,
       reuseExistingServer: false,
-      timeout: 120_000,
-      env: { API_INTERNAL_URL: 'http://localhost:4100', E2E: '1' },
+      timeout: 240_000,
       stdout: 'ignore',
       stderr: 'pipe',
     },

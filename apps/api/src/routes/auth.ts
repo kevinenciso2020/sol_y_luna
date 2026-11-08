@@ -17,6 +17,7 @@ import { requireAuth, requireSameSiteRequest } from '../middleware/auth.js';
 import { limiter, type RateLimits } from '../middleware/rate-limit.js';
 import { toUserDto, type AuthService, type IssuedSession } from '../services/auth.service.js';
 import type { TurnstileVerifier } from '../services/turnstile.js';
+import { CART_COOKIE, type CartService } from '../services/cart.service.js';
 
 export interface AuthRouterDeps {
   auth: AuthService;
@@ -25,6 +26,8 @@ export interface AuthRouterDeps {
   rateLimits: RateLimits;
   secureCookies: boolean;
   allowedOrigins: string[];
+  /** When present, a guest cart is merged into the user's cart on login. */
+  cart?: CartService;
 }
 
 const ctx = (req: Request) => ({ ip: req.clientIp, userAgent: req.header('user-agent') });
@@ -81,7 +84,18 @@ export function authRouter(deps: AuthRouterDeps): ExpressRouter {
     handler(async (req, res) => {
       const input = loginSchema.parse(req.body);
       await assertHuman(req, input.turnstileToken);
-      sendSession(res, await auth.login(input, ctx(req)));
+      const session = await auth.login(input, ctx(req));
+      const guestCart = readCookie(req, CART_COOKIE);
+      if (deps.cart && guestCart) {
+        await deps.cart.mergeGuestIntoUser(guestCart, session.user.id);
+        res.clearCookie(CART_COOKIE, {
+          httpOnly: true,
+          secure: secureCookies,
+          sameSite: 'lax',
+          path: '/',
+        });
+      }
+      sendSession(res, session);
     }),
   );
 

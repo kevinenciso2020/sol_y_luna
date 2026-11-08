@@ -25,6 +25,18 @@ import { uploadsRouter } from './routes/uploads.js';
 import { createAdminProductsService } from './services/admin-products.service.js';
 import { createCatalogService } from './services/catalog.service.js';
 import { createCloudinaryService, type CloudinaryService } from './services/cloudinary.js';
+import { createCartService } from './services/cart.service.js';
+import { createOrdersService } from './services/orders.service.js';
+import { createMercadoPago, type MercadoPago } from './services/payments/mercadopago.js';
+import { createMockProvider } from './services/payments/mock.js';
+import type { PaymentProvider } from './services/payments/types.js';
+import { createWompiProvider } from './services/payments/wompi.js';
+import { createEncryptor } from './lib/encryption.js';
+import { cartRouter } from './routes/cart.js';
+import { checkoutRouter } from './routes/checkout.js';
+import { paymentsRouter } from './routes/payments.js';
+import { adminPaymentsRouter } from './routes/admin/payments.js';
+import type { PaymentProvider as ProviderId } from './generated/prisma/client.js';
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { panelRouter } from './routes/panel.js';
@@ -40,6 +52,10 @@ export interface AppDeps {
   rateLimits?: RateLimits;
   /** Defaults to the real Cloudinary client built from the environment. */
   cloudinary?: CloudinaryService;
+  /** Overrides for tests (e.g. a Mercado Pago client with a fake fetch). */
+  mercadoPago?: MercadoPago | null;
+  /** Receives the orders service (used by server.ts to start the scheduler). */
+  onReady?: (services: { orders: ReturnType<typeof createOrdersService> }) => void;
 }
 
 export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
@@ -68,6 +84,48 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
         : null,
     );
   const catalog = createCatalogService(deps.db);
+  const encryptor = createEncryptor(env.ENCRYPTION_KEY);
+  const mercadoPago =
+    deps.mercadoPago !== undefined
+      ? deps.mercadoPago
+      : env.features.payments.mercadopago
+        ? createMercadoPago({
+            config: {
+              mode: env.MP_MODE,
+              clientId: env.MP_CLIENT_ID,
+              clientSecret: env.MP_CLIENT_SECRET,
+              accessToken: env.MP_ACCESS_TOKEN,
+              webhookSecret: env.MP_WEBHOOK_SECRET!,
+              redirectUri: env.MP_REDIRECT_URI,
+              apiUrl: env.API_URL,
+            },
+            db: deps.db,
+            encryptor,
+            logger,
+          })
+        : null;
+  const providers: Partial<Record<ProviderId, PaymentProvider>> = {};
+  if (env.features.payments.mock) providers.MOCK = createMockProvider(env.WEB_URL);
+  if (env.features.payments.wompi) {
+    providers.WOMPI = createWompiProvider({
+      publicKey: env.WOMPI_PUBLIC_KEY!,
+      integritySecret: env.WOMPI_INTEGRITY_SECRET!,
+      eventsSecret: env.WOMPI_EVENTS_SECRET!,
+      env: env.WOMPI_ENV,
+    });
+  }
+  if (mercadoPago) providers.MERCADOPAGO = mercadoPago.provider;
+  const cart = createCartService({ db: deps.db, pepper: env.REFRESH_TOKEN_PEPPER });
+  const orders = createOrdersService({
+    db: deps.db,
+    cart,
+    email: deps.email,
+    logger,
+    pepper: env.REFRESH_TOKEN_PEPPER,
+    webUrl: env.WEB_URL,
+    providers,
+  });
+  deps.onReady?.({ orders });
   const adminProducts = createAdminProductsService({ db: deps.db, cloudinary });
 
   app.disable('x-powered-by');
@@ -124,12 +182,40 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
       rateLimits,
       secureCookies,
       allowedOrigins: env.CORS_ORIGINS,
+      cart,
     }),
   );
 
   const authenticated = requireAuth({ tokens, auth });
   api.use('/catalog', optionalAuth({ tokens, auth }), catalogRouter({ catalog, db: deps.db }));
   api.use('/account/addresses', authenticated, addressesRouter({ db: deps.db }));
+  const maybeAuth = optionalAuth({ tokens, auth });
+  api.use('/cart', maybeAuth, cartRouter({ cart, secureCookies }));
+  // Optional auth only where it matters (checkout, orders, payments); webhooks never need it.
+  api.use(['/checkout', '/orders', '/payments'], maybeAuth);
+  api.use(
+    checkoutRouter({
+      orders,
+      turnstile: deps.turnstile,
+      db: deps.db,
+      rate: rateLimits.sensitive,
+      secureCookies,
+      demoMode: env.PAYMENTS_MODE === 'demo',
+      mercadoPagoNeedsAccount: env.MP_MODE === 'marketplace',
+    }),
+  );
+  api.use(
+    paymentsRouter({
+      orders,
+      logger,
+      rate: rateLimits.webhooks,
+      mockEnabled: Boolean(providers.MOCK),
+      wompiEventsSecret: env.features.payments.wompi ? env.WOMPI_EVENTS_SECRET : undefined,
+      mercadoPago,
+      stateSecret: env.JWT_ACCESS_SECRET,
+      webUrl: env.WEB_URL,
+    }),
+  );
   api.use(
     '/uploads',
     authenticated,
@@ -146,6 +232,10 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   admin.use('/users', adminUsersRouter({ db: deps.db, auth }));
   admin.use('/settings', adminSettingsRouter({ db: deps.db }));
   admin.use('/audit', adminAuditRouter({ db: deps.db }));
+  admin.use(
+    '/payments',
+    adminPaymentsRouter({ db: deps.db, env, mercadoPago, stateSecret: env.JWT_ACCESS_SECRET }),
+  );
   admin.use(panelRouter());
   api.use('/admin', admin);
   api.use('/operator', authenticated, requireRole('ADMIN', 'OPERATOR'), panelRouter());

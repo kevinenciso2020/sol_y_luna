@@ -1,0 +1,10 @@
+---
+import { lookupPayment, resultPathFor } from '../../lib/orders-server';
+
+// Where the gateways send the buyer back: route to the page that matches the order status.
+const lookup = await lookupPayment(
+  Astro.url.searchParams.get('ref'),
+  Astro.request.headers.get('cookie'),
+);
+return Astro.redirect(lookup ? resultPathFor(lookup) : '/pago/pendiente', 303);
+---

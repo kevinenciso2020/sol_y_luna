@@ -1,0 +1,94 @@
+---
+import { formatCOP } from '@sol-y-luna/shared';
+import OrderSummary from '../../components/shop/OrderSummary.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { lookupPayment } from '../../lib/orders-server';
+
+const ref = Astro.url.searchParams.get('ref');
+const lookup = await lookupPayment(ref, Astro.request.headers.get('cookie'));
+if (lookup && (lookup.provider !== 'MOCK' || lookup.order.status !== 'PENDING_PAYMENT')) {
+  return Astro.redirect(`/pago/resultado?ref=${encodeURIComponent(lookup.reference)}`);
+}
+---
+
+<BaseLayout title="Pago de prueba" noindex>
+  <div class="mx-auto max-w-3xl px-4 pt-6 pb-10">
+    {!lookup ? (
+      <div class="rounded-[2rem] bg-white p-8 text-center ring-1 ring-luna/10">
+        <h1 class="text-3xl">No encontramos este pago</h1>
+        <p class="mt-2">Abre el enlace desde el mismo navegador donde hiciste el pedido.</p>
+      </div>
+    ) : (
+      <>
+        <p class="inline-flex rounded-full bg-noche px-3 py-1 text-sm font-bold text-crema">
+          Modo demo
+        </p>
+        <h1 class="mt-3 text-4xl sm:text-5xl">Pago de prueba</h1>
+        <p class="mt-2 max-w-[52ch] text-noche/85">
+          Aquí no se cobra nada. Elige qué pasa con el pago de {formatCOP(lookup.order.total)} para
+          ver cómo responde la tienda.
+        </p>
+        <div
+          class="mt-6 grid gap-3 sm:grid-cols-3"
+          data-mock-actions
+          data-reference={lookup.reference}
+        >
+          <button type="button" data-outcome="approve" class="pill-cta min-h-14 justify-center">
+            Aprobar pago
+          </button>
+          <button
+            type="button"
+            data-outcome="pending"
+            class="inline-flex min-h-14 items-center justify-center rounded-full border-2 border-luna px-5 font-semibold text-luna hover:bg-luna-50"
+          >
+            Dejar pendiente
+          </button>
+          <button
+            type="button"
+            data-outcome="decline"
+            class="inline-flex min-h-14 items-center justify-center rounded-full bg-sol-700 px-5 font-semibold text-white hover:bg-sol-800"
+          >
+            Rechazar pago
+          </button>
+        </div>
+        <p
+          data-mock-status
+          role="status"
+          aria-live="polite"
+          class="mt-3 text-sm font-medium text-sol-700 empty:hidden"
+        />
+        <div class="mt-8">
+          <OrderSummary order={lookup.order} />
+        </div>
+      </>
+    )}
+  </div>
+</BaseLayout>
+
+<script>
+  import { shopFetch } from '../../lib/cart-client';
+
+  const box = document.querySelector<HTMLElement>('[data-mock-actions]');
+  const status = document.querySelector<HTMLElement>('[data-mock-status]');
+  box?.querySelectorAll<HTMLButtonElement>('[data-outcome]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      box.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      try {
+        const res = await shopFetch<{ data: { resultUrl: string } }>(
+          '/api/payments/mock/complete',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              reference: box.dataset['reference'],
+              outcome: button.dataset['outcome'],
+            }),
+          },
+        );
+        window.location.assign(res.data.resultUrl);
+      } catch {
+        if (status) status.textContent = 'No pudimos registrar el resultado. Intenta de nuevo.';
+        box.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      }
+    });
+  });
+</script>
