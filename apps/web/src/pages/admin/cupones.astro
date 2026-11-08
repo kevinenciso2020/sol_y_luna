@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CouponManager from '../../components/admin/CouponManager';
+---
+
+<AdminLayout title="Cupones">
+  <CouponManager client:only="preact" />
+</AdminLayout>

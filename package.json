@@ -21,7 +21,8 @@
     "db:migrate": "pnpm --filter @sol-y-luna/api db:migrate",
     "db:deploy": "pnpm --filter @sol-y-luna/api db:deploy",
     "db:seed": "pnpm build:shared && pnpm --filter @sol-y-luna/api db:seed",
-    "db:studio": "pnpm --filter @sol-y-luna/api db:studio"
+    "db:studio": "pnpm --filter @sol-y-luna/api db:studio",
+    "e2e": "pnpm build:shared && pnpm --filter @sol-y-luna/web e2e"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

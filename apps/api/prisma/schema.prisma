@@ -279,6 +279,7 @@ model Product {
   disclaimer       String?
   status           ProductStatus @default(DRAFT)
   featured         Boolean       @default(false)
+  minRetailPrice   Int? // lowest active variant retail price, kept in sync by the API (filters/sort)
   seoTitle         String?
   seoDescription   String?
   createdAt        DateTime      @default(now())
@@ -300,6 +301,7 @@ model Product {
   @@index([featured])
   @@index([audience])
   @@index([createdAt])
+  @@index([minRetailPrice])
 }
 
 model ProductVariant {

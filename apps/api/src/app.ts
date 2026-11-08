@@ -8,11 +8,23 @@ import type { Env } from './config/env.js';
 import type { Logger } from './lib/logger.js';
 import type { Db } from './lib/prisma.js';
 import { createTokenService } from './lib/tokens.js';
-import { requireAuth, requireRole } from './middleware/auth.js';
+import { optionalAuth, requireAuth, requireRole } from './middleware/auth.js';
 import { clientIp } from './middleware/client-ip.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { DEFAULT_RATE_LIMITS, limiter, type RateLimits } from './middleware/rate-limit.js';
 import { addressesRouter } from './routes/addresses.js';
+import { adminAuditRouter } from './routes/admin/audit.js';
+import { adminBrandsRouter } from './routes/admin/brands.js';
+import { adminCategoriesRouter } from './routes/admin/categories.js';
+import { adminCouponsRouter } from './routes/admin/coupons.js';
+import { adminProductsRouter } from './routes/admin/products.js';
+import { adminSettingsRouter } from './routes/admin/settings.js';
+import { adminUsersRouter } from './routes/admin/users.js';
+import { catalogRouter } from './routes/catalog.js';
+import { uploadsRouter } from './routes/uploads.js';
+import { createAdminProductsService } from './services/admin-products.service.js';
+import { createCatalogService } from './services/catalog.service.js';
+import { createCloudinaryService, type CloudinaryService } from './services/cloudinary.js';
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { panelRouter } from './routes/panel.js';
@@ -26,6 +38,8 @@ export interface AppDeps {
   turnstile: TurnstileVerifier;
   checkDatabase: () => Promise<void>;
   rateLimits?: RateLimits;
+  /** Defaults to the real Cloudinary client built from the environment. */
+  cloudinary?: CloudinaryService;
 }
 
 export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
@@ -41,6 +55,20 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
     webUrl: env.WEB_URL,
   });
   const secureCookies = env.NODE_ENV === 'production';
+  const cloudinary =
+    deps.cloudinary ??
+    createCloudinaryService(
+      env.features.cloudinary
+        ? {
+            cloudName: env.CLOUDINARY_CLOUD_NAME!,
+            apiKey: env.CLOUDINARY_API_KEY!,
+            apiSecret: env.CLOUDINARY_API_SECRET!,
+            folder: env.CLOUDINARY_FOLDER,
+          }
+        : null,
+    );
+  const catalog = createCatalogService(deps.db);
+  const adminProducts = createAdminProductsService({ db: deps.db, cloudinary });
 
   app.disable('x-powered-by');
   // Railway sits behind a single proxy hop.
@@ -100,8 +128,26 @@ export function createApp(env: Env, logger: Logger, deps: AppDeps): Express {
   );
 
   const authenticated = requireAuth({ tokens, auth });
+  api.use('/catalog', optionalAuth({ tokens, auth }), catalogRouter({ catalog, db: deps.db }));
   api.use('/account/addresses', authenticated, addressesRouter({ db: deps.db }));
-  api.use('/admin', authenticated, requireRole('ADMIN'), panelRouter());
+  api.use(
+    '/uploads',
+    authenticated,
+    requireRole('ADMIN', 'OPERATOR'),
+    uploadsRouter({ cloudinary }),
+  );
+
+  const admin = express.Router();
+  admin.use(authenticated, requireRole('ADMIN'));
+  admin.use('/products', adminProductsRouter({ products: adminProducts }));
+  admin.use('/categories', adminCategoriesRouter({ db: deps.db }));
+  admin.use('/brands', adminBrandsRouter({ db: deps.db }));
+  admin.use('/coupons', adminCouponsRouter({ db: deps.db }));
+  admin.use('/users', adminUsersRouter({ db: deps.db, auth }));
+  admin.use('/settings', adminSettingsRouter({ db: deps.db }));
+  admin.use('/audit', adminAuditRouter({ db: deps.db }));
+  admin.use(panelRouter());
+  api.use('/admin', admin);
   api.use('/operator', authenticated, requireRole('ADMIN', 'OPERATOR'), panelRouter());
 
   app.use('/api', api);

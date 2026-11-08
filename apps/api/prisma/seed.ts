@@ -210,6 +210,7 @@ async function seedCatalog() {
         disclaimer: product.disclaimer,
         status: 'ACTIVE',
         featured: product.featured ?? false,
+        minRetailPrice: Math.min(...product.variants.map((v) => v.retailPrice)),
         seoTitle: `${product.name} | Sol y Luna Store`,
         seoDescription: product.shortDescription,
         variants: {

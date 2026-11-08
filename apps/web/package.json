@@ -8,20 +8,24 @@
     "build": "astro build",
     "preview": "node -e \"require('fs').existsSync('.dev.vars')&&require('fs').copyFileSync('.dev.vars','dist/server/.dev.vars')\" && astro preview",
     "typecheck": "astro check",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.6",
+    "@astrojs/preact": "^6.1.2",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@sol-y-luna/shared": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",
     "astro": "^7.4.7",
+    "preact": "^11.2.0",
     "tailwindcss": "^4.3.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@playwright/test": "^1.65.0",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0",
     "wrangler": "^4.158.0"

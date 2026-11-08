@@ -1,23 +1,42 @@
 ---
-import LogoutButton from '../../components/LogoutButton.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminLayout from '../../layouts/AdminLayout.astro';
 
-const user = Astro.locals.user!;
+const sections = [
+  {
+    href: '/admin/productos',
+    title: 'Productos',
+    text: 'Presentaciones, precios, stock, imágenes e INVIMA.',
+  },
+  { href: '/admin/categorias', title: 'Categorías', text: 'Categorías, subcategorías y orden.' },
+  { href: '/admin/marcas', title: 'Marcas', text: 'Páginas de marca y sus temas.' },
+  { href: '/admin/cupones', title: 'Cupones', text: 'Descuentos por porcentaje o valor fijo.' },
+  { href: '/admin/usuarios', title: 'Usuarios', text: 'Roles, operadores y clientes.' },
+  {
+    href: '/admin/configuracion',
+    title: 'Configuración',
+    text: 'Contacto, WhatsApp y textos legales.',
+  },
+  { href: '/admin/auditoria', title: 'Auditoría', text: 'Historial de cambios sensibles.' },
+];
 ---
 
-<BaseLayout title="Administración">
-  <section class="mx-auto max-w-5xl px-4 pt-4 pb-16">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 class="text-4xl sm:text-5xl">Panel de administración</h1>
-        <p class="mt-2 text-noche/80">
-          Sesión de {user.name} ({user.email})
-        </p>
-      </div>
-      <LogoutButton />
-    </div>
-    <p class="mt-8 max-w-[60ch]">
-      El catálogo, los pedidos, los usuarios y la configuración llegan en las próximas fases.
-    </p>
-  </section>
-</BaseLayout>
+<AdminLayout title="Resumen">
+  <h1 class="text-3xl sm:text-4xl">Hola, {Astro.locals.user!.name.split(' ')[0]}</h1>
+  <p class="mt-2 max-w-[60ch] text-noche/80">
+    Las ventas, los pedidos y las comisiones aparecerán aquí cuando lleguen las fases de compra y
+    negocio.
+  </p>
+  <ul class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {sections.map((s) => (
+      <li>
+        <a
+          href={s.href}
+          class="block h-full rounded-3xl bg-white p-6 ring-1 ring-luna/10 transition-shadow hover:ring-2 hover:ring-luna"
+        >
+          <span class="font-display text-2xl font-bold text-luna">{s.title}</span>
+          <span class="mt-2 block text-sm text-noche/80">{s.text}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</AdminLayout>

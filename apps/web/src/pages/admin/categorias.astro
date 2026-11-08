@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CategoryManager from '../../components/admin/CategoryManager';
+---
+
+<AdminLayout title="Categorías">
+  <CategoryManager client:only="preact" />
+</AdminLayout>

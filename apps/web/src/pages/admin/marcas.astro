@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import BrandManager from '../../components/admin/BrandManager';
+---
+
+<AdminLayout title="Marcas">
+  <BrandManager client:only="preact" />
+</AdminLayout>

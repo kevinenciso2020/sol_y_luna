@@ -30,7 +30,7 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' },
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
-      eqeqeq: ['error', 'always'],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },

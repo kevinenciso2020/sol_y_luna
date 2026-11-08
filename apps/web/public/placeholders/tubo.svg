@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Tubo de crema">
+<rect width="400" height="400" fill="#fbf5ea"/>
+<circle cx="200" cy="212" r="150" fill="#e9552e"/>
+<circle cx="218" cy="196" r="162" fill="none" stroke="#1747b5" stroke-width="8"/>
+<path d="M54 92c26-6 44 8 50 30-24 4-44-8-50-30Z" fill="#1747b5"/><path d="M80 62c18 10 22 30 12 46-16-10-20-30-12-46Z" fill="#e9552e"/>
+<path d="M346 316c-26 6-44-8-50-30 24-4 44 8 50 30Z" fill="#1747b5"/><path d="M320 346c-18-10-22-30-12-46 16 10 20 30 12 46Z" fill="#e9552e"/>
+<rect x="178" y="80" width="44" height="34" rx="6" fill="#0f2557"/><path d="M152 112h96l16 206H136Z" fill="#fffdf9"/><rect x="132" y="304" width="136" height="16" rx="4" fill="#d4a964"/><rect x="164" y="170" width="72" height="80" rx="8" fill="#1747b5"/>
+</svg>

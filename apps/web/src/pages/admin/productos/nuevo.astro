@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductForm from '../../../components/admin/ProductForm';
+---
+
+<AdminLayout title="Nuevo producto">
+  <ProductForm client:only="preact" />
+</AdminLayout>

@@ -4,3 +4,4 @@ export * from './schemas.js';
 export * from './divipola/index.js';
 export * from './auth.js';
 export * from './address.js';
+export * from './catalog.js';

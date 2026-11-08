@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Frasco spray">
+<rect width="400" height="400" fill="#fbf5ea"/>
+<circle cx="200" cy="212" r="150" fill="#e9552e"/>
+<circle cx="218" cy="196" r="162" fill="none" stroke="#1747b5" stroke-width="8"/>
+<path d="M54 92c26-6 44 8 50 30-24 4-44-8-50-30Z" fill="#1747b5"/><path d="M80 62c18 10 22 30 12 46-16-10-20-30-12-46Z" fill="#e9552e"/>
+<path d="M346 316c-26 6-44-8-50-30 24-4 44 8 50 30Z" fill="#1747b5"/><path d="M320 346c-18-10-22-30-12-46 16 10 20 30 12 46Z" fill="#e9552e"/>
+<rect x="176" y="70" width="40" height="22" rx="4" fill="#0f2557"/><rect x="208" y="74" width="34" height="12" rx="4" fill="#0f2557"/><rect x="180" y="92" width="40" height="40" rx="6" fill="#0f2557"/><rect x="146" y="130" width="108" height="188" rx="26" fill="#fffdf9"/><rect x="160" y="184" width="80" height="74" rx="8" fill="#1747b5"/>
+</svg>

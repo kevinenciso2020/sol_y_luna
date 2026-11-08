@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AuditViewer from '../../components/admin/AuditViewer';
+---
+
+<AdminLayout title="Auditoría">
+  <AuditViewer client:only="preact" />
+</AdminLayout>

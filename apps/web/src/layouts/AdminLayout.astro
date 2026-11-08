@@ -1,0 +1,120 @@
+---
+import '../styles/global.css';
+import LogoutButton from '../components/LogoutButton.astro';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const user = Astro.locals.user!;
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/admin';
+
+const nav = [
+  { href: '/admin', label: 'Resumen' },
+  { href: '/admin/productos', label: 'Productos' },
+  { href: '/admin/categorias', label: 'Categorías' },
+  { href: '/admin/marcas', label: 'Marcas' },
+  { href: '/admin/cupones', label: 'Cupones' },
+  { href: '/admin/usuarios', label: 'Usuarios' },
+  { href: '/admin/configuracion', label: 'Configuración' },
+  { href: '/admin/auditoria', label: 'Auditoría' },
+];
+const isActive = (href: string) =>
+  href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`);
+const current = nav.find((n) => isActive(n.href));
+---
+
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} · Admin · Sol y Luna</title>
+  </head>
+  <body class="min-h-dvh bg-crema text-noche antialiased">
+    <a
+      href="#contenido"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-full focus:bg-luna focus:px-4 focus:py-2 focus:text-crema"
+    >
+      Saltar al contenido
+    </a>
+    <div class="lg:grid lg:min-h-dvh lg:grid-cols-[16rem_1fr]">
+      <!-- Sidebar (lg and up) -->
+      <aside class="hidden bg-luna text-crema lg:flex lg:flex-col lg:gap-6 lg:p-6">
+        <a href="/admin" class="font-display text-2xl font-black text-crema">
+          Sol <span class="text-sol-300">y</span> Luna
+        </a>
+        <nav aria-label="Administración" class="flex flex-col gap-1">
+          {nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              class="rounded-full px-4 py-2.5 font-semibold text-crema/85 hover:bg-luna-600 hover:text-crema aria-[current=page]:bg-crema aria-[current=page]:text-luna"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+        <div class="mt-auto space-y-3 text-sm">
+          <p class="break-words text-crema/80">
+            {user.name}
+            <br />
+            {user.email}
+          </p>
+          <a href="/" class="block font-semibold text-crema underline-offset-4 hover:underline">
+            Ver la tienda →
+          </a>
+        </div>
+      </aside>
+
+      <div class="min-w-0">
+        <!-- Top bar (below lg) -->
+        <header class="sticky top-0 z-30 bg-luna text-crema lg:hidden">
+          <details class="group">
+            <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 [&::-webkit-details-marker]:hidden">
+              <span class="font-display text-xl font-black">
+                Sol <span class="text-sol-300">y</span> Luna
+              </span>
+              <span class="flex items-center gap-2 rounded-full bg-luna-600 px-4 py-2 text-sm font-semibold">
+                {current?.label ?? 'Menú'}
+                <span aria-hidden="true" class="transition-transform group-open:rotate-180">
+                  ▾
+                </span>
+              </span>
+            </summary>
+            <nav
+              aria-label="Administración"
+              class="grid gap-1 border-t border-luna-600 px-4 py-3 sm:grid-cols-2"
+            >
+              {nav.map((item) => (
+                <a
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  class="flex min-h-11 items-center rounded-full px-4 font-semibold text-crema/90 hover:bg-luna-600 aria-[current=page]:bg-crema aria-[current=page]:text-luna"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <a
+                href="/"
+                class="flex min-h-11 items-center rounded-full px-4 font-semibold text-crema/90 hover:bg-luna-600"
+              >
+                Ver la tienda →
+              </a>
+            </nav>
+          </details>
+        </header>
+
+        <main id="contenido" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+          <slot />
+        </main>
+        <footer class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 pb-8 text-sm text-noche/70 sm:px-6 lg:px-10">
+          <span>Sesión de {user.name}</span>
+          <LogoutButton />
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

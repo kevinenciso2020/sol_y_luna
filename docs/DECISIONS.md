@@ -169,3 +169,48 @@ Astro `security.csp` genera la CSP con hashes (en páginas SSR la manda como cab
 ### Pruebas de integración
 
 Usan `TEST_DATABASE_URL`: la rama `test` de Neon en local (`apps/api/.env.test`) y un contenedor de Postgres 18 en el CI. Nunca leen `DATABASE_URL`. Se aplican las migraciones una vez por corrida y se vacían las tablas antes de cada test.
+
+## 2026-11-08 — Fase 3
+
+### `Product.minRetailPrice`
+
+Columna derivada con el precio detal más bajo entre las presentaciones activas. La API la recalcula en cada creación o edición. Permite filtrar y ordenar por precio en SQL (Prisma no ordena por agregados de relaciones). Los productos sin presentaciones activas (`minRetailPrice` nulo) no aparecen en la tienda.
+
+### Catálogo público
+
+- Visible = `status ACTIVE`, sin `deletedAt` y con al menos una presentación activa.
+- El filtro por categoría incluye todas sus subcategorías. "Todos los productos" incluye los que no tienen categoría.
+- `audience=HIM` muestra solo productos marcados "para él" (los unisex no se mezclan).
+- El precio mayorista solo se envía a mayoristas aprobados (autenticación opcional en el catálogo; esas respuestas son `private, no-store`). Las demás respuestas del catálogo tienen caché pública corta (60 a 300 s).
+- La marca `+18` del producto también se hereda de su categoría.
+
+### Admin
+
+- Borrar un producto es un soft delete: se marca `deletedAt`, se archiva, se libera el slug (se le agrega el sufijo `-eliminado-xxxx`) y se quita de los carritos. Los SKU no se liberan, porque las presentaciones guardadas los conservan.
+- Al quitar una presentación de un producto: si tiene ventas o stock reservado, se desactiva; si no, se borra.
+- El stock no puede quedar por debajo del reservado. Cada cambio de stock crea un `InventoryMovement` (`ADJUSTMENT`, o `RESTOCK` si es inicial).
+- Borrar una categoría deja sus productos sin categoría (FK `SET NULL`) y sube sus subcategorías al primer nivel. No se permiten ciclos padre/hijo.
+- Borrar una marca deja sus productos sin marca. Borrar un cupón no altera pedidos (guardan el código como copia).
+- Usuarios: un admin no puede cambiar su propio rol ni borrarse, y siempre queda al menos un admin. Los usuarios creados desde el admin reciben un enlace para crear su contraseña.
+- Auditoría: se registran todas las mutaciones del admin; los precios y el stock van como acciones aparte (`variant.price.update`, `variant.stock.update`) con el diff. De los textos legales solo se registra cuáles cambiaron.
+- Los errores de unicidad de Prisma se responden con 409 y un mensaje por campo (slug, SKU, código, correo). Con driver adapters, Prisma 7 informa el índice (`Brand_slug_key`) y el campo se extrae de ahí.
+
+### Subida de imágenes (Cloudinary)
+
+Subida directa del navegador a Cloudinary con firma generada en el servidor (`allowed_formats` + `folder` + `timestamp`, SHA-1 con el secreto). Después la API verifica con la Admin API de Cloudinary el formato (JPG, PNG, WebP o AVIF), el tamaño (5 MB como máximo) y la carpeta; si no cumple, borra el archivo y responde 400. Solo ADMIN y OPERATOR. Un producto solo acepta `publicId` de la carpeta de la tienda o placeholders locales. Sin credenciales, la subida responde 503 con un mensaje claro y el admin ofrece las imágenes de ejemplo (`/placeholders/*.svg`). La CSP de la web permite `connect-src https://api.cloudinary.com`.
+
+### Margen de reutilización del refresh token (15 s)
+
+Lo encontraron las pruebas E2E: al navegar rápido, el navegador cancela un refresh que el servidor ya rotó y se queda con el token viejo, lo que se veía como robo y cerraba la sesión. Si un token rotado vuelve dentro de 15 s y la familia sigue viva, se reemplaza el token vivo de la familia (que nunca llegó al navegador) por uno nuevo. Fuera del margen, o si la familia ya no tiene un token vivo, se revoca toda la familia. Es la misma idea que el "reuse interval" de Auth0 o el "grace period" de Okta.
+
+### Panel admin con islas de Preact (`client:only`)
+
+Los formularios del admin (presentaciones dinámicas, editor de beneficios, imágenes ordenables) son islas de Preact (≈4 KB), en vez de TS puro. Se cargan con `client:only` porque el admin es `noindex` y no necesita render en el servidor; así se evita que la hidratación pise lo que el usuario ya escribió. La protección sigue en el servidor (middleware de Astro y API).
+
+### Responsive
+
+Todas las pantallas son mobile-first. Las listas del admin son tarjetas por debajo de `md` y tabla desde `md`. La navegación del admin es un menú desplegable por debajo de `lg` y una barra lateral desde `lg`. Los controles tienen al menos 44 px de alto. Las pruebas E2E fallan si una página del admin tiene scroll horizontal en celular (Pixel 7) o en escritorio (1366 px).
+
+### Pruebas E2E (Playwright)
+
+`pnpm e2e` levanta una API (puerto 4100) y una web (puerto 4400) aparte, contra la rama `test` de Neon, que se migra, se vacía y se siembra antes de cada corrida. Corren en los perfiles "mobile" y "desktop". Astro 7 se manda solo al fondo cuando lo ejecuta un agente; `--ignore-lock` lo mantiene en primer plano para Playwright. El job de E2E en el CI se agrega en la fase 5, junto con la compra completa.

@@ -31,6 +31,13 @@ export const INVALID_CREDENTIALS_MESSAGE =
 
 const ARGON2_OPTIONS = { type: argon2.argon2id } as const;
 
+/**
+ * A rotated refresh token presented again within this window is treated as a lost response or a
+ * parallel tab, not as theft, as long as its family is still alive (same idea as Auth0's
+ * "reuse interval"). Outside the window, any reuse revokes the whole family.
+ */
+export const REFRESH_REUSE_GRACE_MS = 15_000;
+
 export interface SessionContext {
   ip: string;
   userAgent: string | undefined;
@@ -221,8 +228,9 @@ export function createAuthService(deps: AuthServiceDeps) {
     },
 
     /**
-     * Rotates a refresh token. A token that was already rotated (or revoked) means it leaked:
-     * the whole family (that login and every token derived from it) is revoked.
+     * Rotates a refresh token. Reusing a token that was already rotated means it leaked: the whole
+     * family (that login and every token derived from it) is revoked — except within the short
+     * grace window described at REFRESH_REUSE_GRACE_MS.
      */
     async refresh(presented: string, ctx: SessionContext): Promise<IssuedSession> {
       const record = await db.refreshToken.findUnique({
@@ -231,50 +239,74 @@ export function createAuthService(deps: AuthServiceDeps) {
       });
       if (!record)
         throw new HttpError(401, 'Tu sesión expiró. Ingresa de nuevo.', 'SESSION_EXPIRED');
-
-      const revokeFamily = async (reason: string) => {
-        await db.refreshToken.updateMany({
-          where: { familyId: record.familyId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        logger.warn({ userId: record.userId, familyId: record.familyId }, reason);
-      };
-
-      if (record.revokedAt !== null) {
-        await revokeFamily('reutilización de refresh token detectada: familia revocada');
-        throw new HttpError(401, 'Tu sesión expiró. Ingresa de nuevo.', 'SESSION_REVOKED');
-      }
-      if (record.expiresAt <= new Date()) {
+      if (record.revokedAt === null && record.expiresAt <= new Date()) {
         throw new HttpError(401, 'Tu sesión expiró. Ingresa de nuevo.', 'SESSION_EXPIRED');
       }
 
       const nextToken = randomToken();
+      const newTokenData = () => ({
+        tokenHash: hash(nextToken),
+        familyId: record.familyId,
+        userId: record.userId,
+        expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 86_400_000),
+        userAgent: ctx.userAgent?.slice(0, 255) ?? null,
+        ip: ctx.ip,
+      });
+
       const rotated = await db.$transaction(async (tx) => {
         // Atomic claim: only one request can rotate a given token.
         const claimed = await tx.refreshToken.updateMany({
           where: { id: record.id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
-        if (claimed.count !== 1) return null;
-        const created = await tx.refreshToken.create({
-          data: {
-            tokenHash: hash(nextToken),
-            familyId: record.familyId,
-            userId: record.userId,
-            expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 86_400_000),
-            userAgent: ctx.userAgent?.slice(0, 255) ?? null,
-            ip: ctx.ip,
-          },
+        if (claimed.count === 1) {
+          const created = await tx.refreshToken.create({ data: newTokenData() });
+          await tx.refreshToken.update({
+            where: { id: record.id },
+            data: { replacedById: created.id },
+          });
+          return created;
+        }
+
+        // Already rotated. Within the grace window, supersede the family's live token
+        // (whose response probably never reached the browser) instead of killing the session.
+        const current = await tx.refreshToken.findUniqueOrThrow({ where: { id: record.id } });
+        const rotatedRecently =
+          current.replacedById !== null &&
+          current.revokedAt !== null &&
+          Date.now() - current.revokedAt.getTime() <= REFRESH_REUSE_GRACE_MS;
+        if (!rotatedRecently) return null;
+        const live = await tx.refreshToken.findFirst({
+          where: { familyId: record.familyId, revokedAt: null, expiresAt: { gt: new Date() } },
+          orderBy: { createdAt: 'desc' },
         });
+        if (!live) return null;
+        const superseded = await tx.refreshToken.updateMany({
+          where: { id: live.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        if (superseded.count !== 1) return null;
+        const created = await tx.refreshToken.create({ data: newTokenData() });
         await tx.refreshToken.update({
-          where: { id: record.id },
+          where: { id: live.id },
           data: { replacedById: created.id },
         });
+        logger.info(
+          { userId: record.userId, familyId: record.familyId },
+          'refresh repetido dentro del margen: sesión conservada',
+        );
         return created;
       });
 
       if (!rotated) {
-        await revokeFamily('refresh token usado dos veces en paralelo: familia revocada');
+        await db.refreshToken.updateMany({
+          where: { familyId: record.familyId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        logger.warn(
+          { userId: record.userId, familyId: record.familyId },
+          'reutilización de refresh token detectada: familia revocada',
+        );
         throw new HttpError(401, 'Tu sesión expiró. Ingresa de nuevo.', 'SESSION_REVOKED');
       }
 

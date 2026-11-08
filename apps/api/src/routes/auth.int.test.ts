@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { REFRESH_COOKIE, SESSION_COOKIE } from '@sol-y-luna/shared';
-import { INVALID_CREDENTIALS_MESSAGE } from '../services/auth.service.js';
+import { INVALID_CREDENTIALS_MESSAGE, REFRESH_REUSE_GRACE_MS } from '../services/auth.service.js';
 import {
   TEST_PASSWORD,
   buildTestApp,
@@ -195,7 +195,11 @@ describe.skipIf(!hasTestDatabase)('auth (integración)', () => {
       const current = cookiesFrom(rotated.headers['set-cookie'])[REFRESH_COOKIE]!;
       const currentAccess = rotated.body.accessToken as string;
 
-      // An attacker replays the old (already rotated) token.
+      // An attacker replays the old (already rotated) token after the grace window.
+      await getTestDb().refreshToken.updateMany({
+        where: { revokedAt: { not: null } },
+        data: { revokedAt: new Date(Date.now() - REFRESH_REUSE_GRACE_MS - 1000) },
+      });
       const replay = await refreshWith(app, first.refresh);
       expect(replay.status).toBe(401);
       expect(replay.body.error.code).toBe('SESSION_REVOKED');
@@ -218,8 +222,33 @@ describe.skipIf(!hasTestDatabase)('auth (integración)', () => {
       const phone = await login(app, 'ana@example.com');
       const laptop = await login(app, 'ana@example.com');
       await refreshWith(app, phone.refresh);
-      await refreshWith(app, phone.refresh); // reuse → revokes only the phone family
+      await getTestDb().refreshToken.updateMany({
+        where: { revokedAt: { not: null } },
+        data: { revokedAt: new Date(Date.now() - REFRESH_REUSE_GRACE_MS - 1000) },
+      });
+      expect((await refreshWith(app, phone.refresh)).status).toBe(401); // reuse → revokes only the phone family
       expect((await refreshWith(app, laptop.refresh)).status).toBe(200);
+    });
+
+    it('tolera un refresh repetido dentro del margen (respuesta perdida o pestañas en paralelo)', async () => {
+      const { app } = buildTestApp();
+      await createUser({ email: 'ana@example.com' });
+      const first = await login(app, 'ana@example.com');
+      const lost = await refreshWith(app, first.refresh); // the browser never stored this answer
+      expect(lost.status).toBe(200);
+      const retry = await refreshWith(app, first.refresh); // retries with the old cookie
+      expect(retry.status).toBe(200);
+      const fresh = cookiesFrom(retry.headers['set-cookie'])[REFRESH_COOKIE]!;
+      // Only one token stays alive, and the session keeps working.
+      expect(await getTestDb().refreshToken.count({ where: { revokedAt: null } })).toBe(1);
+      expect((await refreshWith(app, fresh)).status).toBe(200);
+      // The undelivered token is no longer valid.
+      const undelivered = cookiesFrom(lost.headers['set-cookie'])[REFRESH_COOKIE]!;
+      await getTestDb().refreshToken.updateMany({
+        where: { revokedAt: { not: null } },
+        data: { revokedAt: new Date(Date.now() - REFRESH_REUSE_GRACE_MS - 1000) },
+      });
+      expect((await refreshWith(app, undelivered)).status).toBe(401);
     });
 
     it('exige la cabecera anti-CSRF y un Origin permitido', async () => {

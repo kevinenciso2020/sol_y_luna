@@ -62,3 +62,18 @@ export function requireSameSiteRequest(allowedOrigins: string[]): RequestHandler
     next();
   };
 }
+
+/** Like requireAuth, but anonymous requests (or invalid tokens) simply continue without req.auth. */
+export function optionalAuth(deps: { tokens: TokenService; auth: AuthService }): RequestHandler {
+  const strict = requireAuth(deps);
+  return (req, res, next) => {
+    if (!req.header('authorization')) {
+      next();
+      return;
+    }
+    void strict(req, res, (error?: unknown) => {
+      if (error) delete req.auth;
+      next();
+    });
+  };
+}

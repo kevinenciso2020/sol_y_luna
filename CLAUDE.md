@@ -34,6 +34,7 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - `pnpm test` — unitarias + integración (la API usa `TEST_DATABASE_URL` de `apps/api/.env.test`, rama `test` de Neon)
 - `pnpm build`
 - `pnpm format` / `pnpm format:check`
+- `pnpm e2e` — Playwright (mobile + desktop) contra la rama `test`; requiere `apps/api/.env` y `.env.test`
 - `pnpm --filter @sol-y-luna/web preview` — build en workerd local (usa `apps/web/.dev.vars`)
 - `pnpm db:migrate` — `prisma migrate dev` (solo contra la rama `dev` de Neon)
 - `pnpm db:deploy` — `prisma migrate deploy` (producción)
@@ -64,6 +65,13 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - Auth: endpoints en `/api/auth/*`. Rutas protegidas con `requireAuth` + `requireRole`. Endpoints con cookie (refresh, logout) exigen `x-syl-csrf: 1`. Páginas `/admin`, `/operador` y `/cuenta` protegidas en el middleware de Astro con la cookie `syl_session` (validada por la API).
 - Recursos del usuario: siempre filtrar por `userId` en el `where` y responder 404 si no es suyo.
 - Mensajes de error de auth genéricos (no revelar si un correo existe).
+- Toda mutación del admin escribe `AuditLog` dentro de la misma transacción (`services/audit.ts`). Cambios de stock = `InventoryMovement`.
+- Imágenes: solo `publicId` de la carpeta de Cloudinary de la tienda o `/placeholders/*.svg`; en la web usar `imageUrl()` (f_auto,q_auto + ancho).
+
+## UI
+
+- **Responsive en toda pantalla** (320 px a monitores grandes), mobile-first, incluidos los paneles. Listas = tarjetas en móvil y tabla desde `md`. Controles de 44 px o más. Sin scroll horizontal (lo verifica el E2E).
+- Admin: islas de Preact en `apps/web/src/components/admin/` con `client:only="preact"`; kit en `ui.tsx` (`DataList`, `FormDialog`, `ConfirmDialog`…). CRUD simples con `EntityManager` + configuración (con género gramatical: "Nueva categoría").
 
 ## Modo demo
 
@@ -76,11 +84,11 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | 0. Base                                      | ✅ Completa |
 | 1. Datos (Prisma, migración, seed, DIVIPOLA) | ✅ Completa |
 | 2. Auth y seguridad                          | ✅ Completa |
-| 3. Catálogo y admin                          | Pendiente   |
+| 3. Catálogo y admin                          | ✅ Completa |
 | 4. Tienda                                    | Pendiente   |
 | 5. Compra y pagos                            | Pendiente   |
 | 6. Negocio (comisiones, operador, emails)    | Pendiente   |
 | 7. Cuenta                                    | Pendiente   |
 | 8. Despliegue                                | Pendiente   |
 
-Pendientes conocidos: los SVG de placeholder (`/placeholders/*.svg`) se diseñan en la fase 4; las sesiones KV del adapter de Cloudflare y la región de Railway (US East, junto a Neon) se definen en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).
+Pendientes conocidos: el job E2E del CI llega en la fase 5; las sesiones KV del adapter de Cloudflare y la región de Railway (US East, junto a Neon) se definen en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).

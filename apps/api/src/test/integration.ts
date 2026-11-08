@@ -4,6 +4,7 @@ import { createApp } from '../app.js';
 import { createLogger } from '../lib/logger.js';
 import { createPrismaClient, type Db } from '../lib/prisma.js';
 import { DEFAULT_RATE_LIMITS, type RateLimits } from '../middleware/rate-limit.js';
+import type { CloudinaryService } from '../services/cloudinary.js';
 import { createMemoryEmailSender } from '../services/email.js';
 import { testEnv } from './fixtures.js';
 
@@ -31,7 +32,9 @@ const noLimits: RateLimits = Object.fromEntries(
   Object.keys(DEFAULT_RATE_LIMITS).map((key) => [key, { limit: 0, windowMs: 60_000 }]),
 ) as unknown as RateLimits;
 
-export function buildTestApp(options: { rateLimits?: RateLimits; turnstileOk?: boolean } = {}) {
+export function buildTestApp(
+  options: { rateLimits?: RateLimits; turnstileOk?: boolean; cloudinary?: CloudinaryService } = {},
+) {
   const email = createMemoryEmailSender();
   const env = testEnv();
   const app = createApp(env, createLogger({ level: 'silent', pretty: false }), {
@@ -40,6 +43,7 @@ export function buildTestApp(options: { rateLimits?: RateLimits; turnstileOk?: b
     turnstile: { verify: async () => options.turnstileOk ?? true },
     checkDatabase: async () => {},
     rateLimits: options.rateLimits ?? noLimits,
+    ...(options.cloudinary ? { cloudinary: options.cloudinary } : {}),
   });
   return { app, email, env };
 }
