@@ -1,0 +1,131 @@
+---
+import { catalogQuerySchema } from '@sol-y-luna/shared';
+import { AGE_COOKIE, isAgeVerified } from '../../lib/age';
+import {
+  catalog,
+  flattenCategories,
+  NotFoundError,
+  type ProductCard as Card,
+} from '../../lib/catalog';
+import FilterForm from './FilterForm.astro';
+import Pager from './Pager.astro';
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  fixedCategory?: string | undefined;
+}
+const { fixedCategory } = Astro.props;
+const url = Astro.url;
+const ageVerified = isAgeVerified(Astro.cookies.get(AGE_COOKIE)?.value);
+
+// Invalid params are dropped instead of failing the whole page.
+const raw = Object.fromEntries(url.searchParams);
+const parsed = catalogQuerySchema.safeParse({
+  ...raw,
+  category: fixedCategory ?? raw['category'] ?? undefined,
+});
+const query = parsed.success ? parsed.data : catalogQuerySchema.parse({ category: fixedCategory });
+for (const key of ['q', 'category', 'brand', 'audience', 'minPrice', 'maxPrice'] as const) {
+  if (raw[key] === '') delete (query as Record<string, unknown>)[key];
+}
+
+const [tree, brands] = await Promise.all([
+  catalog.categories().catch(() => []),
+  catalog.brands().catch(() => []),
+]);
+let result: { data: Card[]; meta: { page: number; totalPages: number; total: number } };
+try {
+  result = await catalog.products({
+    q: query.q,
+    category: query.category,
+    brand: query.brand,
+    audience: query.audience,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+    invima: query.invima ? 1 : undefined,
+    sort: query.sort,
+    page: query.page,
+    pageSize: 12,
+  });
+} catch (error) {
+  if (!(error instanceof NotFoundError)) throw error;
+  result = { data: [], meta: { page: 1, totalPages: 1, total: 0 } };
+}
+const categories = flattenCategories(tree);
+const activeFilters = [
+  'q',
+  'brand',
+  'audience',
+  'minPrice',
+  'maxPrice',
+  'invima',
+  ...(fixedCategory ? [] : ['category']),
+].filter((k) => url.searchParams.get(k));
+---
+
+<div class="grid gap-6 lg:grid-cols-[17rem_1fr] lg:gap-10">
+  <div>
+    <details class="group rounded-[1.5rem] bg-white ring-1 ring-luna/10 lg:hidden">
+      <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 font-semibold text-luna [&::-webkit-details-marker]:hidden">
+        <span>Filtros y orden{activeFilters.length > 0 && ` (${activeFilters.length})`}</span>
+        <span aria-hidden="true" class="transition-transform group-open:rotate-180">
+          ▾
+        </span>
+      </summary>
+      <div class="px-5 pb-5">
+        <FilterForm
+          idPrefix="m"
+          url={url}
+          categories={categories}
+          brands={brands}
+          fixedCategory={fixedCategory}
+        />
+      </div>
+    </details>
+    <aside
+      class="sticky top-4 hidden rounded-[1.5rem] bg-white p-5 ring-1 ring-luna/10 lg:block"
+      aria-label="Filtros"
+    >
+      <FilterForm
+        idPrefix="d"
+        url={url}
+        categories={categories}
+        brands={brands}
+        fixedCategory={fixedCategory}
+      />
+    </aside>
+  </div>
+
+  <div>
+    <p class="text-sm text-noche/70" role="status">
+      {result.meta.total === 1 ? '1 producto' : `${result.meta.total} productos`}
+      {query.q && ` para "${query.q}"`}
+    </p>
+    {result.data.length === 0 ? (
+      <div class="mt-6 rounded-[2rem] border-2 border-dashed border-luna/25 p-8 text-center">
+        <p class="font-display text-2xl font-bold text-luna">
+          No encontramos productos con esos filtros
+        </p>
+        <p class="mt-2 text-noche/80">Prueba con menos filtros o busca otra palabra.</p>
+        <a href={url.pathname} class="pill-cta mt-6">
+          Ver todos <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    ) : (
+      <ul class="mt-4 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
+        {result.data.map((p, i) => (
+          <li>
+            <ProductCard
+              product={p}
+              variant={i % 2 === 0 ? 'crema' : 'luna'}
+              ageVerified={ageVerified}
+              eager={i < 2}
+              headingLevel="h2"
+            />
+          </li>
+        ))}
+      </ul>
+    )}
+    <Pager page={result.meta.page} totalPages={result.meta.totalPages} url={url} />
+  </div>
+</div>

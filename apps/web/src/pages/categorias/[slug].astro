@@ -1,0 +1,71 @@
+---
+import { slugSchema } from '@sol-y-luna/shared';
+import AgeGate from '../../components/store/AgeGate.astro';
+import Breadcrumbs from '../../components/store/Breadcrumbs.astro';
+import CatalogView from '../../components/store/CatalogView.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { AGE_COOKIE, isAgeVerified } from '../../lib/age';
+import { catalog, flattenCategories } from '../../lib/catalog';
+
+const slug = slugSchema.safeParse(Astro.params.slug);
+if (!slug.success) return Astro.rewrite('/404');
+const category = flattenCategories(await catalog.categories()).find((c) => c.slug === slug.data);
+if (!category) return Astro.rewrite('/404');
+
+const gated =
+  (category.isAdult || Boolean(category.parent?.isAdult)) &&
+  !isAgeVerified(Astro.cookies.get(AGE_COOKIE)?.value);
+const crumbs = [
+  { label: 'Inicio', href: '/' },
+  { label: 'Productos', href: '/productos' },
+  ...(category.parent
+    ? [{ label: category.parent.name, href: `/categorias/${category.parent.slug}` }]
+    : []),
+  { label: category.name },
+];
+---
+
+<BaseLayout
+  title={gated ? 'Contenido para mayores de 18 años' : category.name}
+  description={category.description}
+  noindex={gated}
+  canonical={`/categorias/${category.slug}`}
+>
+  {gated ? (
+    <AgeGate
+      returnTo={`/categorias/${category.slug}`}
+      error={
+        Astro.url.searchParams.get('edad') === 'menor'
+          ? 'Debes tener 18 años o más para ver esta categoría.'
+          : null
+      }
+    />
+  ) : (
+    <>
+      <div class="mx-auto max-w-6xl px-4 pt-2 pb-4">
+        <Breadcrumbs items={crumbs} />
+        <h1 class="mt-3 text-4xl sm:text-5xl">{category.name}</h1>
+        {category.description && (
+          <p class="mt-2 max-w-[60ch] text-noche/80">{category.description}</p>
+        )}
+        {category.children.length > 0 && (
+          <ul class="mt-4 flex flex-wrap gap-2">
+            {category.children.map((child) => (
+              <li>
+                <a
+                  href={`/categorias/${child.slug}`}
+                  class="pill-attr min-h-10 items-center hover:bg-luna-50"
+                >
+                  {child.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div class="mx-auto max-w-6xl px-4">
+        <CatalogView fixedCategory={category.slug} />
+      </div>
+    </>
+  )}
+</BaseLayout>

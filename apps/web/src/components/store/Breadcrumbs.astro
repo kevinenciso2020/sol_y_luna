@@ -1,0 +1,39 @@
+---
+import { jsonLd } from '../../lib/seo';
+
+interface Props {
+  items: { label: string; href?: string }[];
+}
+const { items } = Astro.props;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const structured = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.label,
+    ...(item.href ? { item: new URL(item.href, site).toString() } : {}),
+  })),
+};
+---
+
+<nav aria-label="Ruta de navegación" class="text-sm text-noche/70">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
+    {items.map((item, index) => (
+      <li class="flex items-center gap-2">
+        {index > 0 && <span aria-hidden="true">/</span>}
+        {item.href && index < items.length - 1 ? (
+          <a href={item.href} class="underline-offset-4 hover:text-luna hover:underline">
+            {item.label}
+          </a>
+        ) : (
+          <span aria-current="page" class="font-semibold text-noche">
+            {item.label}
+          </span>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+<script type="application/ld+json" is:inline set:html={jsonLd(structured)} />

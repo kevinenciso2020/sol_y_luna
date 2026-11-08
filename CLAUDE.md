@@ -18,7 +18,7 @@ Proyecto independiente: no copiar código, datos ni configuración de otros repo
 ```
 apps/api/prisma/{schema.prisma, migrations/, seed.ts, seed-data.ts}  + prisma.config.ts
 apps/api/src/{config/env.ts, app.ts, server.ts, lib/ (prisma, tokens, crypto, cookies), middleware/ (auth, client-ip, rate-limit), routes/ (auth, addresses, panel), services/ (auth, email, turnstile), test/, generated/ (ignorado)}
-apps/web/src/{middleware.ts, pages/api/[...path].ts (BFF), pages/cuenta|admin|operador/, layouts/, components/, lib/ (auth-client, bff, route-guard, security-headers), scripts/, styles/global.css}
+apps/web/src/{pages/ (index, productos/, categorias/, marcas/, legal/, verificar-edad.ts, sitemap.xml.ts, robots.txt.ts), components/store/ (ProductCard, ProductMedia, FolkBranch, CatalogView, FilterForm, AgeGate…), middleware.ts, pages/api/[...path].ts (BFF), pages/cuenta|admin|operador/, layouts/, components/, lib/ (auth-client, bff, route-guard, security-headers), scripts/, styles/global.css}
 packages/shared/src/{money.ts, constants.ts, schemas.ts, divipola/, index.ts}
 docs/{SPEC.md, DECISIONS.md, DEPLOY.md}
 ```
@@ -71,6 +71,7 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 ## UI
 
 - **Responsive en toda pantalla** (320 px a monitores grandes), mobile-first, incluidos los paneles. Listas = tarjetas en móvil y tabla desde `md`. Controles de 44 px o más. Sin scroll horizontal (lo verifica el E2E).
+- Tienda: HTML desde el servidor (lee la API con `lib/catalog.ts`), JS mínimo sin framework. Elemento de marca = `ProductMedia` (círculo naranja + anillo azul desplazado) y `FolkBranch`. Tarjetas alternan `variant` crema/luna. +18 con `AgeGate` en el servidor y cookie `syl_edad`. Lighthouse móvil ≥ 90 obligatorio en home y ficha.
 - Admin: islas de Preact en `apps/web/src/components/admin/` con `client:only="preact"`; kit en `ui.tsx` (`DataList`, `FormDialog`, `ConfirmDialog`…). CRUD simples con `EntityManager` + configuración (con género gramatical: "Nueva categoría").
 
 ## Modo demo
@@ -85,10 +86,10 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 | 1. Datos (Prisma, migración, seed, DIVIPOLA) | ✅ Completa |
 | 2. Auth y seguridad                          | ✅ Completa |
 | 3. Catálogo y admin                          | ✅ Completa |
-| 4. Tienda                                    | Pendiente   |
+| 4. Tienda                                    | ✅ Completa |
 | 5. Compra y pagos                            | Pendiente   |
 | 6. Negocio (comisiones, operador, emails)    | Pendiente   |
 | 7. Cuenta                                    | Pendiente   |
 | 8. Despliegue                                | Pendiente   |
 
-Pendientes conocidos: el job E2E del CI llega en la fase 5; las sesiones KV del adapter de Cloudflare y la región de Railway (US East, junto a Neon) se definen en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).
+Pendientes conocidos: el job E2E del CI llega en la fase 5 (junto con el carrito, que se monta en `data-cart-slot` de la ficha); las sesiones KV del adapter de Cloudflare y el servicio `api` de Railway (ya creado y configurado, sin repo conectado) se conecta en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).

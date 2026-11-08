@@ -1,0 +1,96 @@
+---
+import { formatCOP } from '@sol-y-luna/shared';
+import { chipFor, type ProductCard } from '../../lib/catalog';
+import ProductMedia from './ProductMedia.astro';
+
+interface Props {
+  product: ProductCard;
+  /** Alternates between the two brand card styles. */
+  variant?: 'crema' | 'luna';
+  ageVerified: boolean;
+  eager?: boolean;
+  headingLevel?: 'h2' | 'h3';
+}
+const {
+  product: p,
+  variant = 'crema',
+  ageVerified,
+  eager = false,
+  headingLevel = 'h3',
+} = Astro.props;
+const Heading = headingLevel;
+const blurred = p.isAdult && !ageVerified;
+const chip = chipFor(p);
+const dark = variant === 'luna';
+---
+
+<article
+  class:list={[
+    'group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] p-3 sm:p-4',
+    dark ? 'bg-luna text-crema' : 'bg-crema-50 ring-1 ring-luna/15',
+  ]}
+>
+  {chip && (
+    <span
+      class:list={[
+        'absolute top-3 right-3 z-10 rounded-full px-2.5 py-1 text-[0.65rem] font-bold tracking-wide sm:text-xs',
+        dark ? 'bg-crema text-luna' : 'bg-luna text-crema',
+      ]}
+    >
+      {chip}
+    </span>
+  )}
+  <ProductMedia
+    publicId={p.image?.publicId}
+    alt={blurred ? 'Producto para mayores de 18 años' : (p.image?.alt ?? p.name)}
+    variant={variant}
+    blurred={blurred}
+    eager={eager}
+  />
+  <div class="mt-2 flex flex-1 flex-col gap-2">
+    {p.brand && (
+      <p class:list={['text-xs font-semibold', dark ? 'text-crema/80' : 'text-noche/70']}>
+        {p.brand.name}
+      </p>
+    )}
+    <Heading
+      class:list={[
+        'font-display text-lg leading-tight font-bold sm:text-xl',
+        dark ? 'text-crema' : 'text-luna',
+      ]}
+    >
+      <a
+        href={`/productos/${p.slug}`}
+        class="after:absolute after:inset-0 focus-visible:outline-none"
+      >
+        {p.name}
+      </a>
+    </Heading>
+    <div class="mt-auto flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+      <p class="flex flex-wrap items-baseline gap-x-2">
+        {p.variantCount > 1 && (
+          <span class:list={['text-xs', dark ? 'text-crema/80' : 'text-noche/70']}>Desde</span>
+        )}
+        <span
+          class:list={[
+            'font-display text-xl font-black sm:text-2xl',
+            dark ? 'text-crema' : 'text-noche',
+          ]}
+        >
+          {formatCOP(p.price)}
+        </span>
+        {p.compareAtPrice && (
+          <span class:list={['text-sm line-through', dark ? 'text-crema/85' : 'text-noche/70']}>
+            <span class="sr-only">Antes</span>
+            {formatCOP(p.compareAtPrice)}
+          </span>
+        )}
+      </p>
+      {!p.inStock && (
+        <span class:list={['text-xs font-semibold', dark ? 'text-crema' : 'text-sol-700']}>
+          Agotado
+        </span>
+      )}
+    </div>
+  </div>
+</article>

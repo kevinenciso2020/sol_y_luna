@@ -98,6 +98,7 @@ export function createCatalogService(db: Db) {
       if (query.brand) and.push({ brand: { slug: query.brand, isActive: true } });
       if (query.audience) and.push({ audience: query.audience });
       if (query.invima) and.push({ invimaStatus: 'REGISTERED' });
+      if (query.featured) and.push({ featured: true });
       if (query.minPrice !== undefined || query.maxPrice !== undefined) {
         and.push({
           minRetailPrice: {

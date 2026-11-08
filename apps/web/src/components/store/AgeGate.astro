@@ -1,0 +1,60 @@
+---
+/**
+ * Server-side +18 gate: the protected content is not rendered at all until the visitor confirms
+ * their age. Works without JavaScript (plain form POST).
+ */
+interface Props {
+  returnTo: string;
+  title?: string;
+  error?: string | null;
+}
+const { returnTo, title = 'Este contenido es para mayores de 18 años', error } = Astro.props;
+const max = new Date().toISOString().slice(0, 10);
+---
+
+<section class="mx-auto max-w-xl px-4 py-12 sm:py-20">
+  <div class="rounded-[2rem] bg-white p-6 ring-1 ring-luna/10 sm:p-10">
+    <p class="inline-flex rounded-full bg-noche px-3 py-1 text-sm font-bold text-crema">+18</p>
+    <h1 class="mt-4 text-3xl sm:text-4xl">{title}</h1>
+    <p class="mt-3 text-noche/80">
+      Escribe tu fecha de nacimiento para continuar. La guardamos solo en tu navegador durante 30
+      días.
+    </p>
+    <form method="post" action="/verificar-edad" class="mt-6 space-y-4">
+      <input type="hidden" name="volver" value={returnTo} />
+      <div class="space-y-1.5">
+        <label for="nacimiento" class="block text-sm font-semibold">
+          Fecha de nacimiento
+        </label>
+        <input
+          id="nacimiento"
+          name="nacimiento"
+          type="date"
+          required
+          max={max}
+          min="1900-01-01"
+          autocomplete="bday"
+          aria-describedby={error ? 'nacimiento-error' : undefined}
+          aria-invalid={error ? 'true' : undefined}
+          class="block w-full min-h-12 rounded-2xl border-2 border-luna/25 bg-crema-50 px-4 py-3 text-base outline-none focus:border-luna"
+        />
+        {error && (
+          <p id="nacimiento-error" class="text-sm font-medium text-sol-700">
+            {error}
+          </p>
+        )}
+      </div>
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <button type="submit" class="pill-cta justify-center">
+          Tengo 18 años o más <span aria-hidden="true">→</span>
+        </button>
+        <a
+          href="/productos"
+          class="inline-flex min-h-12 items-center justify-center rounded-full px-5 font-semibold text-luna hover:bg-luna-50"
+        >
+          Volver al catálogo
+        </a>
+      </div>
+    </form>
+  </div>
+</section>

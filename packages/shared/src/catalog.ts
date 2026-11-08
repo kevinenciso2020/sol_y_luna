@@ -35,6 +35,10 @@ export const catalogQuerySchema = z.object({
     .enum(['1', 'true'])
     .transform(() => true)
     .optional(),
+  featured: z
+    .enum(['1', 'true'])
+    .transform(() => true)
+    .optional(),
   sort: z.enum(PRODUCT_SORTS).default('relevance'),
   page: z.coerce.number().int().min(1).max(500).default(1),
   pageSize: z.coerce.number().int().min(1).max(48).default(12),

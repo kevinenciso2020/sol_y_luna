@@ -1,0 +1,139 @@
+---
+import { slugSchema } from '@sol-y-luna/shared';
+import Breadcrumbs from '../../components/store/Breadcrumbs.astro';
+import ProductCard from '../../components/store/ProductCard.astro';
+import Pager from '../../components/store/Pager.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { AGE_COOKIE, isAgeVerified } from '../../lib/age';
+import { catalog, NotFoundError, type Brand } from '../../lib/catalog';
+
+const slug = slugSchema.safeParse(Astro.params.slug);
+if (!slug.success) return Astro.rewrite('/404');
+let brand: Brand;
+try {
+  brand = await catalog.brand(slug.data);
+} catch (error) {
+  if (error instanceof NotFoundError) return Astro.rewrite('/404');
+  throw error;
+}
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? '1') || 1);
+const products = await catalog.products({ brand: brand.slug, page, pageSize: 12 });
+const ageVerified = isAgeVerified(Astro.cookies.get(AGE_COOKIE)?.value);
+const dark = brand.theme?.mode === 'dark';
+// Theme colors come from the admin (validated #RRGGBB); fall back to the store palette.
+const accent = brand.theme?.accent ?? '#e9552e';
+const accent2 = brand.theme?.accent2 ?? accent;
+const background = brand.theme?.background ?? (dark ? '#0b0b12' : '#fbf5ea');
+---
+
+<BaseLayout
+  title={brand.name}
+  description={brand.description}
+  theme={dark ? 'dark' : 'default'}
+  canonical={`/marcas/${brand.slug}`}
+>
+  <section
+    class:list={['relative overflow-hidden', dark ? 'brand-dark' : '']}
+    style={`--brand-bg:${background};--brand-accent:${accent};--brand-accent-2:${accent2};background:var(--brand-bg)`}
+  >
+    {dark && (
+      <svg
+        class="pointer-events-none absolute inset-x-0 bottom-0 h-20 w-full opacity-70 sm:h-28"
+        aria-hidden="true"
+        preserveAspectRatio="none"
+        viewBox="0 0 400 200"
+      >
+        <path
+          d="M-10 160 C 60 120, 90 190, 160 140 S 260 60, 410 110"
+          fill="none"
+          stroke="var(--brand-accent)"
+          stroke-width="6"
+          stroke-linecap="round"
+        />
+        <path
+          d="M-10 40 C 80 80, 140 10, 220 50 S 330 120, 410 30"
+          fill="none"
+          stroke="var(--brand-accent-2)"
+          stroke-width="4"
+          stroke-dasharray="2 14"
+          stroke-linecap="round"
+        />
+        <circle cx="330" cy="150" r="5" fill="var(--brand-accent)" />
+        <circle cx="60" cy="70" r="4" fill="var(--brand-accent-2)" />
+      </svg>
+    )}
+    <div class="relative mx-auto max-w-6xl px-4 pt-4 pb-24 sm:pb-32">
+      <div class:list={[dark && '[&_a]:text-white/80 [&_nav]:text-white/70 [&_span]:text-white']}>
+        <Breadcrumbs
+          items={[
+            { label: 'Inicio', href: '/' },
+            { label: 'Marcas', href: '/marcas' },
+            { label: brand.name },
+          ]}
+        />
+      </div>
+      <h1
+        class:list={['mt-6 text-6xl sm:text-8xl', dark && 'brand-title']}
+        style={dark ? undefined : 'color:#1747b5'}
+      >
+        {brand.name}
+      </h1>
+      {brand.description && (
+        <p class:list={['mt-4 max-w-[46ch] text-lg', dark ? 'text-white/85' : 'text-noche/85']}>
+          {brand.description}
+        </p>
+      )}
+    </div>
+  </section>
+
+  <div class:list={['mx-auto max-w-6xl px-4 pt-8', dark && 'text-white']}>
+    <p class:list={['text-sm', dark ? 'text-white/70' : 'text-noche/70']}>
+      {products.meta.total === 1 ? '1 producto' : `${products.meta.total} productos`}
+    </p>
+    <ul class="mt-4 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+      {products.data.map((p, i) => (
+        <li>
+          <ProductCard
+            product={p}
+            variant={i % 2 === 0 ? 'crema' : 'luna'}
+            ageVerified={ageVerified}
+            headingLevel="h2"
+          />
+        </li>
+      ))}
+    </ul>
+    <Pager page={products.meta.page} totalPages={products.meta.totalPages} url={Astro.url} />
+  </div>
+</BaseLayout>
+
+<style>
+  /* Graffiti / neon look, only on dark brand pages (e.g. WILD). */
+  .brand-title {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    color: var(--brand-accent);
+    transform: rotate(-3deg);
+    text-shadow:
+      0 0 6px var(--brand-accent),
+      0 0 22px color-mix(in srgb, var(--brand-accent) 60%, transparent),
+      4px 4px 0 var(--brand-accent-2);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .brand-title {
+      animation: flicker 4s steps(1) 1;
+    }
+  }
+  @keyframes flicker {
+    0%,
+    6%,
+    10% {
+      opacity: 1;
+    }
+    4%,
+    8% {
+      opacity: 0.55;
+    }
+  }
+</style>

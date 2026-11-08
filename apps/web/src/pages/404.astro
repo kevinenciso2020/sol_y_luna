@@ -1,0 +1,28 @@
+---
+import FolkBranch from '../components/store/FolkBranch.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+Astro.response.status = 404;
+---
+
+<BaseLayout title="Página no encontrada" noindex>
+  <section class="relative mx-auto max-w-3xl overflow-hidden px-4 py-16 sm:py-24">
+    <FolkBranch tone="sol" class="pointer-events-none absolute -top-4 -right-10 size-40" />
+    <p class="font-display text-8xl font-black text-sol">404</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">No encontramos esta página</h1>
+    <p class="mt-4 max-w-[48ch]">
+      Puede que el producto ya no esté disponible o que el enlace tenga un error.
+    </p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="/productos" class="pill-cta">
+        Ver productos <span aria-hidden="true">→</span>
+      </a>
+      <a
+        href="/"
+        class="inline-flex min-h-12 items-center rounded-full px-5 font-semibold text-luna hover:bg-luna-50"
+      >
+        Ir al inicio
+      </a>
+    </div>
+  </section>
+</BaseLayout>

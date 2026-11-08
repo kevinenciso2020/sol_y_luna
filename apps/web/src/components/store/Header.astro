@@ -1,0 +1,117 @@
+---
+import Wordmark from '../Wordmark.astro';
+
+const nav = [
+  { href: '/productos', label: 'Productos' },
+  { href: '/productos?audience=HIM', label: 'Para él' },
+  { href: '/productos?audience=HER', label: 'Para ella' },
+  { href: '/marcas', label: 'Marcas' },
+];
+const q = Astro.url.pathname === '/productos' ? (Astro.url.searchParams.get('q') ?? '') : '';
+---
+
+<header class="relative z-30 bg-crema/95 text-noche backdrop-blur">
+  <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+    <Wordmark />
+    <nav aria-label="Principal" class="ml-6 hidden lg:block">
+      <ul class="flex gap-1">
+        {nav.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class="rounded-full px-3 py-2 font-semibold text-noche hover:bg-luna-50 hover:text-luna"
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <form action="/productos" method="get" role="search" class="ml-auto hidden md:block">
+      <label for="buscar-escritorio" class="sr-only">
+        Buscar productos
+      </label>
+      <input
+        id="buscar-escritorio"
+        name="q"
+        type="search"
+        value={q}
+        placeholder="Buscar productos"
+        class="min-h-11 w-56 rounded-full border-2 border-luna/20 bg-white px-4 text-sm outline-none focus:border-luna lg:w-64"
+      />
+    </form>
+    <a
+      href="/cuenta"
+      class="ml-auto inline-flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold text-luna hover:bg-luna-50 md:ml-0"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="size-6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path>
+      </svg>
+      <span class="sr-only sm:not-sr-only">Mi cuenta</span>
+    </a>
+    <details class="group lg:hidden">
+      <summary class="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-full text-luna hover:bg-luna-50 [&::-webkit-details-marker]:hidden">
+        <span class="sr-only">Menú</span>
+        <svg
+          viewBox="0 0 24 24"
+          class="size-7 group-open:hidden"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+        <svg
+          viewBox="0 0 24 24"
+          class="hidden size-7 group-open:block"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </summary>
+      <div class="absolute inset-x-0 top-full border-t border-luna/10 bg-crema px-4 pt-3 pb-6 shadow-[0_12px_24px_-12px_rgba(15,37,87,0.35)]">
+        <form action="/productos" method="get" role="search" class="md:hidden">
+          <label for="buscar-movil" class="sr-only">
+            Buscar productos
+          </label>
+          <input
+            id="buscar-movil"
+            name="q"
+            type="search"
+            value={q}
+            placeholder="Buscar productos"
+            class="min-h-12 w-full rounded-full border-2 border-luna/20 bg-white px-4 outline-none focus:border-luna"
+          />
+        </form>
+        <nav aria-label="Principal (móvil)" class="mt-3">
+          <ul class="grid gap-1 sm:grid-cols-2">
+            {nav.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  class="flex min-h-12 items-center rounded-2xl px-4 font-display text-xl font-bold text-luna hover:bg-luna-50"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </details>
+  </div>
+</header>

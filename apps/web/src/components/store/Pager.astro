@@ -1,0 +1,54 @@
+---
+/** Link-based pagination: every page has its own shareable URL. */
+interface Props {
+  page: number;
+  totalPages: number;
+  url: URL;
+}
+const { page, totalPages, url } = Astro.props;
+const hrefFor = (n: number) => {
+  const next = new URL(url);
+  if (n <= 1) next.searchParams.delete('page');
+  else next.searchParams.set('page', String(n));
+  return `${next.pathname}${next.search}`;
+};
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+  (n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1,
+);
+---
+
+{totalPages > 1 && (
+  <nav aria-label="Paginación" class="mt-10 flex flex-wrap items-center justify-center gap-2">
+    {page > 1 && (
+      <a
+        href={hrefFor(page - 1)}
+        rel="prev"
+        class="inline-flex min-h-11 items-center rounded-full border-2 border-luna px-4 font-semibold text-luna hover:bg-luna-50"
+      >
+        ← Anterior
+      </a>
+    )}
+    {pages.map((n, i) => (
+      <>
+        {i > 0 && n - pages[i - 1]! > 1 && <span aria-hidden="true">…</span>}
+        <a
+          href={hrefFor(n)}
+          aria-current={n === page ? 'page' : undefined}
+          class="grid size-11 place-items-center rounded-full font-semibold text-luna hover:bg-luna-50 aria-[current=page]:bg-luna aria-[current=page]:text-crema"
+        >
+          <span class="sr-only">Página </span>
+          {n}
+        </a>
+      </>
+    ))}
+    {page < totalPages && (
+      <a
+        href={hrefFor(page + 1)}
+        rel="next"
+        class="inline-flex min-h-11 items-center rounded-full border-2 border-luna px-4 font-semibold text-luna hover:bg-luna-50"
+      >
+        Siguiente →
+      </a>
+    )}
+  </nav>
+)}

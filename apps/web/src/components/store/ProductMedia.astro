@@ -1,0 +1,60 @@
+---
+import { productImage } from '../../lib/store-images';
+
+/** Brand signature: product over an orange sun circle, framed by an offset blue ring. */
+interface Props {
+  publicId: string | null | undefined;
+  alt: string;
+  size?: 'card' | 'hero' | 'detail';
+  variant?: 'crema' | 'luna';
+  blurred?: boolean;
+  eager?: boolean;
+  sizes?: string;
+}
+const {
+  publicId,
+  alt,
+  size = 'card',
+  variant = 'crema',
+  blurred = false,
+  eager = false,
+  sizes = '(min-width: 1024px) 25vw, 50vw',
+} = Astro.props;
+const img = productImage(publicId, size === 'card' ? 480 : 960);
+const ring = variant === 'luna' ? 'border-crema/80' : 'border-luna';
+---
+
+<div class:list={['relative isolate aspect-square w-full', size === 'hero' && 'max-w-[34rem]']}>
+  {variant === 'luna' ? (
+    <div class="absolute inset-[14%] -z-10 rotate-6 rounded-[28%] bg-sol" aria-hidden="true" />
+  ) : (
+    <div class="absolute inset-[12%] -z-10 rounded-full bg-sol" aria-hidden="true" />
+  )}
+  <div
+    class:list={[
+      'absolute inset-[6%] -z-10 translate-x-[5%] -translate-y-[3%] rounded-full border-[3px]',
+      ring,
+    ]}
+    aria-hidden="true"
+  ></div>
+  <img
+    src={img.src}
+    srcset={img.srcset}
+    sizes={img.srcset ? sizes : undefined}
+    alt={alt}
+    width="600"
+    height="600"
+    loading={eager ? 'eager' : 'lazy'}
+    fetchpriority={eager ? 'high' : 'auto'}
+    decoding="async"
+    class:list={[
+      'absolute inset-[16%] h-[68%] w-[68%] object-contain drop-shadow-[0_10px_14px_rgba(15,37,87,0.18)]',
+      blurred && 'scale-105 blur-xl',
+    ]}
+  />
+  {blurred && (
+    <span class="absolute inset-0 grid place-items-center">
+      <span class="rounded-full bg-noche px-4 py-2 text-sm font-bold text-crema">+18</span>
+    </span>
+  )}
+</div>

@@ -1,48 +1,87 @@
 ---
 import '../styles/global.css';
+import frauncesLatin from '@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2?url';
+import dmSansLatin from '@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url';
 import WhatsAppButton from '../components/WhatsAppButton.astro';
-import Wordmark from '../components/Wordmark.astro';
+import Footer from '../components/store/Footer.astro';
+import Header from '../components/store/Header.astro';
+import { DEFAULT_DESCRIPTION, SITE_NAME, jsonLd } from '../lib/seo';
 
 interface Props {
   title: string;
-  description?: string;
+  description?: string | null | undefined;
+  image?: string | undefined;
+  canonical?: string | undefined;
+  noindex?: boolean;
+  structuredData?: unknown;
+  ogType?: 'website' | 'product';
+  /** Brand pages can switch the whole page to a dark theme (e.g. WILD). */
+  theme?: 'default' | 'dark';
+  instagramUrl?: string | null | undefined;
+  contactEmail?: string | null | undefined;
 }
 
 const {
   title,
-  description = 'Suplementos, cuidado íntimo, skincare y bienestar importados. Envío gratis a toda Colombia.',
+  description,
+  image,
+  canonical,
+  noindex = false,
+  structuredData,
+  ogType = 'website',
+  theme = 'default',
+  instagramUrl,
+  contactEmail,
 } = Astro.props;
-const fullTitle = title === 'Sol y Luna Store' ? title : `${title} · Sol y Luna Store`;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const fullTitle = title === SITE_NAME ? title : `${title} | ${SITE_NAME}`;
+const metaDescription = description || DEFAULT_DESCRIPTION;
+const canonicalUrl = new URL(canonical ?? Astro.url.pathname, site).toString();
+const ogImage = new URL(image ?? '/og-default.png', site).toString();
 ---
 
 <!doctype html>
-<html lang="es-CO">
+<html lang="es-CO" data-theme={theme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#1747b5" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{fullTitle}</title>
+    <meta name="description" content={metaDescription} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="theme-color" content={theme === 'dark' ? '#0b0b12' : '#fbf5ea'} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href={frauncesLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={dmSansLatin} as="font" type="font/woff2" crossorigin />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {structuredData && (
+      <script type="application/ld+json" is:inline set:html={jsonLd(structuredData)} />
+    )}
   </head>
-  <body class="min-h-dvh bg-crema text-noche antialiased">
+  <body
+    class:list={[
+      'flex min-h-dvh flex-col antialiased',
+      theme === 'dark' ? 'bg-[#0b0b12] text-white' : 'bg-crema text-noche',
+    ]}
+  >
     <a
       href="#contenido"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-full focus:bg-luna focus:px-4 focus:py-2 focus:text-crema"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-full focus:bg-luna focus:px-4 focus:py-2 focus:text-crema"
     >
       Saltar al contenido
     </a>
-    <header class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-      <Wordmark />
-      <nav aria-label="Cuenta">
-        <a href="/cuenta" class="rounded-full px-4 py-2 font-semibold text-luna hover:bg-luna-50">
-          Mi cuenta
-        </a>
-      </nav>
-    </header>
-    <main id="contenido">
+    <Header />
+    <main id="contenido" class="flex-1">
       <slot />
     </main>
+    <Footer instagramUrl={instagramUrl} contactEmail={contactEmail} />
     <WhatsAppButton />
   </body>
 </html>

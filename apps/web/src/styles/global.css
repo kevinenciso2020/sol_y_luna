@@ -1,6 +1,7 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/fraunces';
-@import '@fontsource-variable/dm-sans';
+/* Weight axis only: ~36 KB + ~40 KB (latin), the full Fraunces file is 3x larger. */
+@import '@fontsource-variable/fraunces/wght.css';
+@import '@fontsource-variable/dm-sans/wght.css';
 
 /*
  * Sol y Luna brand tokens.
@@ -73,9 +74,6 @@
     color: var(--color-luna);
     font-weight: 800;
     line-height: 1.05;
-    font-variation-settings:
-      'SOFT' 50,
-      'WONK' 1;
   }
 
   :focus-visible {

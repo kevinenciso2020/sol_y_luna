@@ -1,0 +1,25 @@
+---
+import Breadcrumbs from '../../components/store/Breadcrumbs.astro';
+import CatalogView from '../../components/store/CatalogView.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const audience = Astro.url.searchParams.get('audience');
+const title =
+  audience === 'HIM' ? 'Para él' : audience === 'HER' ? 'Para ella' : 'Todos los productos';
+// Filtered/paginated variations point to the clean catalog URL.
+const filtered = [...Astro.url.searchParams.keys()].some((k) => k !== 'audience');
+---
+
+<BaseLayout
+  title={title}
+  description="Suplementos, cuidado íntimo, skincare y bienestar. Filtra por categoría, marca, precio y registro INVIMA."
+  canonical={audience && !filtered ? `/productos?audience=${audience}` : '/productos'}
+>
+  <div class="mx-auto max-w-6xl px-4 pt-2 pb-4">
+    <Breadcrumbs items={[{ label: 'Inicio', href: '/' }, { label: title }]} />
+    <h1 class="mt-3 text-4xl sm:text-5xl">{title}</h1>
+  </div>
+  <div class="mx-auto max-w-6xl px-4">
+    <CatalogView />
+  </div>
+</BaseLayout>

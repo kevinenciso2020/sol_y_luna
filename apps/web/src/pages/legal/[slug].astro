@@ -1,0 +1,76 @@
+---
+import Breadcrumbs from '../../components/store/Breadcrumbs.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { catalog } from '../../lib/catalog';
+import { renderMarkdown } from '../../lib/markdown';
+
+const PAGES: Record<string, { key: string; title: string }> = {
+  terminos: { key: 'terms', title: 'Términos y condiciones' },
+  privacidad: { key: 'privacy', title: 'Política de privacidad y tratamiento de datos' },
+  retracto: { key: 'withdrawal', title: 'Derecho de retracto y garantías' },
+  envios: { key: 'shipping', title: 'Política de envíos' },
+  devoluciones: { key: 'returns', title: 'Política de devoluciones' },
+};
+const page = PAGES[Astro.params.slug ?? ''];
+if (!page) return Astro.rewrite('/404');
+const { content } = await catalog.legal(page.key);
+const html = renderMarkdown(content || `# ${page.title}\n\nEste texto se publicará pronto.`);
+---
+
+<BaseLayout title={page.title}>
+  <div class="mx-auto max-w-3xl px-4 pt-2 pb-8">
+    <Breadcrumbs items={[{ label: 'Inicio', href: '/' }, { label: page.title }]} />
+    <div
+      class="legal mt-6 rounded-[2rem] bg-white p-6 ring-1 ring-luna/10 sm:p-10"
+      set:html={html}
+    />
+    <nav aria-label="Otras políticas" class="mt-8">
+      <ul class="flex flex-wrap gap-2">
+        {Object.entries(PAGES)
+          .filter(([slug]) => slug !== Astro.params.slug)
+          .map(([slug, p]) => (
+            <li>
+              <a href={`/legal/${slug}`} class="pill-attr min-h-10 items-center hover:bg-luna-50">
+                {p.title}
+              </a>
+            </li>
+          ))}
+      </ul>
+    </nav>
+  </div>
+</BaseLayout>
+
+<style>
+  .legal :global(h1) {
+    font-size: 2.25rem;
+    margin-bottom: 1rem;
+  }
+  .legal :global(h2) {
+    font-size: 1.5rem;
+    margin: 1.75rem 0 0.5rem;
+  }
+  .legal :global(p),
+  .legal :global(li) {
+    line-height: 1.7;
+    max-width: 70ch;
+  }
+  .legal :global(p) {
+    margin: 0.75rem 0;
+  }
+  .legal :global(ul),
+  .legal :global(ol) {
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+  .legal :global(blockquote) {
+    margin: 1rem 0;
+    border-left: 4px solid var(--color-sol);
+    background: var(--color-crema-100);
+    padding: 0.75rem 1rem;
+    border-radius: 0 1rem 1rem 0;
+  }
+  .legal :global(a) {
+    color: var(--color-luna);
+    text-decoration: underline;
+  }
+</style>

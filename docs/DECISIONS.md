@@ -214,3 +214,45 @@ Todas las pantallas son mobile-first. Las listas del admin son tarjetas por deba
 ### Pruebas E2E (Playwright)
 
 `pnpm e2e` levanta una API (puerto 4100) y una web (puerto 4400) aparte, contra la rama `test` de Neon, que se migra, se vacía y se siembra antes de cada corrida. Corren en los perfiles "mobile" y "desktop". Astro 7 se manda solo al fondo cuando lo ejecuta un agente; `--ignore-lock` lo mantiene en primer plano para Playwright. El job de E2E en el CI se agrega en la fase 5, junto con la compra completa.
+
+## 2026-11-08 — Fase 4
+
+### Railway: servicio nuevo sin autodeploy
+
+Por pedido del dueño se borró el servicio `solyluna-backend` (código anterior: carpeta `backend/`, Dockerfile, `/api/health`) del proyecto `solyluna` y se creó el servicio `api`, sin repo conectado (no hay autodeploy). Ya está configurado para el monorepo: Railpack, build `pnpm install --frozen-lockfile && pnpm build:shared && pnpm --filter @sol-y-luna/api build`, start `pnpm --filter @sol-y-luna/api start`, pre-deploy `pnpm --filter @sol-y-luna/api db:deploy`, healthcheck `/health`, región `us-east4`, reinicio ante fallos y watch patterns de `apps/api`, `packages/shared` y el lockfile. En la fase 8 se conecta el repo, se cargan las variables y se genera el dominio.
+
+### Tienda renderizada en el servidor, sin framework en el cliente
+
+Las páginas públicas son HTML desde el servidor: las páginas consultan la API directamente (`API_INTERNAL_URL`, de servidor a servidor). La interactividad es mínima y sin frameworks (selector de presentación y galería), y los filtros del catálogo son un formulario GET que funciona sin JS y deja URLs que se pueden compartir. Resultado en Lighthouse móvil, sobre el build de producción en workerd: inicio 100/100/100/100 y ficha 99/100/100/100 (rendimiento, accesibilidad, buenas prácticas y SEO).
+
+### Fuentes
+
+Solo el eje de peso de Fraunces y DM Sans (`wght.css`, unos 36 KB + 40 KB en latin), con precarga del archivo latin. Se descartaron los ejes SOFT/WONK de Fraunces porque triplican el peso.
+
+### Composición del producto
+
+El círculo naranja y el anillo azul desplazado se dibujan con CSS (`ProductMedia`). Para los placeholders se usan siluetas sin fondo (`/placeholders/solo/*.svg`); los placeholders completos (con su propio círculo) quedan para el admin. Las fotos reales de Cloudinary pasan por `f_auto,q_auto`, con `srcset` y `sizes`, y tienen dimensiones fijas para que la página no salte (CLS 0).
+
+### Verificación +18 en el servidor
+
+La ficha de un producto +18 o de una categoría +18 no se renderiza sin la cookie `syl_edad` (httpOnly, 30 días). El formulario de fecha de nacimiento hace un POST a `/verificar-edad` (funciona sin JS), calcula la edad exacta y vuelve a la página original (con `safeNextPath`, sin redirecciones abiertas). En los listados, las imágenes +18 se ven borrosas con la etiqueta "+18" hasta verificar. El contenido +18 queda fuera del sitemap y es `noindex` mientras está bloqueado.
+
+### Chips de las tarjetas
+
+Muestran la audiencia ("PARA ÉL" / "PARA ELLA") o, si no hay, el nombre de la categoría en mayúsculas, como en el Instagram. Las tarjetas alternan las dos variantes de marca: crema con círculo naranja, o azul con bloque naranja.
+
+### Tema de marca (WILD)
+
+La página `/marcas/[slug]` usa el tema guardado en `Brand.theme`: con `mode: dark` la página entera pasa a fondo oscuro, con título en neón y "grafiti" (trazos SVG) usando los acentos de la marca. Los colores vienen validados del admin (`#RRGGBB`).
+
+### Textos legales
+
+Se escriben en Markdown desde el admin. Al publicarlos se escapa todo el HTML antes de convertir y se neutralizan los enlaces que no son `http(s)`, `mailto` o relativos.
+
+### SEO
+
+Canonical en todas las páginas (los filtros apuntan a la URL limpia del catálogo), Open Graph con una imagen por defecto (`/og-default.png`, 1200×630), JSON-LD `Store` en el inicio, `Product` con `Offer` o `AggregateOffer` en COP y envío gratis en la ficha, y `BreadcrumbList`. Además, `sitemap.xml` dinámico y `robots.txt` que excluye `/admin`, `/operador`, `/cuenta` y `/api`.
+
+### Botón "Agregar al carrito"
+
+La ficha deja reservado el espacio (`data-cart-slot`) para el botón del carrito de la fase 5. Mientras tanto, si hay número de WhatsApp configurado, muestra "Pregunta por WhatsApp".

@@ -1,84 +1,261 @@
 ---
 import { formatCOP } from '@sol-y-luna/shared';
-import ProductPlaceholder from '../components/ProductPlaceholder.astro';
+import FolkBranch from '../components/store/FolkBranch.astro';
+import ProductCard from '../components/store/ProductCard.astro';
+import ProductMedia from '../components/store/ProductMedia.astro';
+import TrustBlock from '../components/store/TrustBlock.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { AGE_COOKIE, isAgeVerified } from '../lib/age';
+import { catalog, type ProductCard as Card } from '../lib/catalog';
+import { DEFAULT_DESCRIPTION, SITE_NAME } from '../lib/seo';
 
-// Phase 0 preview: brand tokens and card variants. The real home arrives in phase 4.
-const samples = [
-  {
-    name: 'Saúco Negro con Vitamina C y Zinc',
-    chip: 'BIENESTAR',
-    attr: '60 cápsulas',
-    price: 89_900,
-    variant: 'crema',
-  },
-  { name: 'Crema Neuropatía', chip: 'ALIVIO', attr: 'Uso tópico', price: 64_900, variant: 'luna' },
-] as const;
+const ageVerified = isAgeVerified(Astro.cookies.get(AGE_COOKIE)?.value);
+
+const safe = async <T,>(promise: Promise<T>, fallback: T) => {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+};
+
+const EMPTY = { data: [] as Card[], meta: { page: 1, pageSize: 0, total: 0, totalPages: 1 } };
+
+const [featured, forHim, forHer, categories, brands, settings] = await Promise.all([
+  safe(catalog.products({ featured: 1, pageSize: 8 }), EMPTY),
+  safe(catalog.products({ audience: 'HIM', pageSize: 4 }), EMPTY),
+  safe(catalog.products({ audience: 'HER', pageSize: 4 }), EMPTY),
+  safe(catalog.categories(), []),
+  safe(catalog.brands(), []),
+  safe(catalog.settings(), null),
+]);
+
+const countLabel = (n: number) => (n === 1 ? '1 producto' : `${n} productos`);
+const hero = featured.data.find((p) => !p.isAdult) ?? featured.data[0];
+const visibleCategories = categories.filter(
+  (c) => c.productCount > 0 || c.children.some((child) => child.productCount > 0),
+);
+const site = Astro.site ?? new URL(Astro.url.origin);
+const organization = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: SITE_NAME,
+  description: DEFAULT_DESCRIPTION,
+  url: site.toString(),
+  logo: new URL('/favicon.svg', site).toString(),
+  areaServed: 'CO',
+  currenciesAccepted: 'COP',
+  sameAs: settings?.instagramUrl
+    ? [settings.instagramUrl]
+    : ['https://www.instagram.com/solylunastore1/'],
+};
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
+);
 ---
 
-<BaseLayout title="Sol y Luna Store">
-  <section class="mx-auto max-w-6xl px-4 pt-6 pb-16">
-    <h1 class="max-w-[14ch] text-5xl sm:text-7xl">Bienestar que llega a tu puerta</h1>
-    <p class="mt-4 max-w-[52ch] text-lg">
-      Estamos preparando la tienda. Muy pronto vas a encontrar aquí suplementos, cuidado íntimo,
-      skincare y productos de bienestar, con envío gratis a toda Colombia.
-    </p>
+<BaseLayout
+  title={SITE_NAME}
+  structuredData={organization}
+  instagramUrl={settings?.instagramUrl}
+  contactEmail={settings?.contactEmail}
+>
+  <!-- Hero: the brand's signature composition -->
+  <section class="relative overflow-hidden">
+    <FolkBranch class="pointer-events-none absolute -top-10 -right-12 size-32 sm:-top-8 sm:right-auto sm:-left-14 sm:size-56" />
+    <FolkBranch
+      tone="sol"
+      flipX
+      flipY
+      class="pointer-events-none absolute -right-16 -bottom-10 hidden size-56 md:block"
+    />
+    <div class="relative mx-auto grid max-w-6xl items-center gap-6 px-4 pt-6 pb-12 md:grid-cols-[1.05fr_1fr] md:gap-10 md:pt-10 md:pb-16">
+      <div class="relative z-10">
+        <h1 class="max-w-[13ch] text-[2.6rem] leading-[0.98] sm:text-6xl lg:text-7xl">
+          Bienestar que llega a tu puerta
+        </h1>
+        <p class="mt-5 max-w-[42ch] text-lg text-noche/85">
+          Suplementos, cuidado íntimo y skincare importados, con envío gratis a toda Colombia y
+          empaque discreto si lo pides.
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="/productos" class="pill-cta">
+            Ver productos <span aria-hidden="true">→</span>
+          </a>
+          <a
+            href="#categorias"
+            class="inline-flex min-h-12 items-center rounded-full border-2 border-luna px-6 font-semibold text-luna hover:bg-luna-50"
+          >
+            Explorar categorías
+          </a>
+        </div>
+      </div>
+      {hero && (
+        <a
+          href={`/productos/${hero.slug}`}
+          class="group relative mx-auto block w-full max-w-[22rem] md:max-w-[30rem]"
+          aria-label={`Ver ${hero.name}`}
+        >
+          <ProductMedia
+            publicId={hero.image?.publicId}
+            alt={hero.image?.alt ?? hero.name}
+            size="hero"
+            eager
+            sizes="(min-width: 768px) 480px, 90vw"
+          />
+          <span class="absolute right-0 bottom-4 rounded-full bg-luna px-4 py-2 text-sm font-bold text-crema shadow-lg sm:bottom-8">
+            {hero.name}
+          </span>
+        </a>
+      )}
+    </div>
+  </section>
 
-    <div class="mt-10 grid gap-6 sm:grid-cols-2">
-      {samples.map((item) => (
-        <article
+  <TrustBlock />
+
+  {visibleCategories.length > 0 && (
+    <section
+      id="categorias"
+      aria-labelledby="titulo-categorias"
+      class="mx-auto mt-16 max-w-6xl scroll-mt-20 px-4"
+    >
+      <div class="flex items-end justify-between gap-4">
+        <h2 id="titulo-categorias" class="text-3xl sm:text-4xl">
+          Categorías
+        </h2>
+        <a href="/productos" class="font-semibold text-luna underline-offset-4 hover:underline">
+          Ver todo
+        </a>
+      </div>
+      <ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {visibleCategories.map((c, i) => (
+          <li>
+            <a
+              href={`/categorias/${c.slug}`}
+              class:list={[
+                'flex h-full min-h-24 flex-col justify-between rounded-[1.5rem] p-4 transition-transform hover:-translate-y-0.5',
+                i % 3 === 0
+                  ? 'bg-luna text-crema'
+                  : i % 3 === 1
+                    ? 'bg-sol-100 text-noche'
+                    : 'bg-white text-noche ring-1 ring-luna/10',
+              ]}
+            >
+              <span class="font-display text-lg leading-tight font-bold">{c.name}</span>
+              <span class="mt-2 text-xs font-semibold opacity-80">
+                {countLabel(c.productCount + c.children.reduce((s, x) => s + x.productCount, 0))}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {featured.data.length > 0 && (
+    <section aria-labelledby="titulo-destacados" class="mx-auto mt-16 max-w-6xl px-4">
+      <h2 id="titulo-destacados" class="text-3xl sm:text-4xl">
+        Los más pedidos
+      </h2>
+      <ul
+        class:list={[
+          'mt-6 grid grid-cols-2 gap-3 sm:gap-5',
+          featured.data.length % 4 === 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+        ]}
+      >
+        {featured.data.slice(0, 8).map((p, i) => (
+          <li>
+            <ProductCard
+              product={p}
+              variant={i % 2 === 0 ? 'crema' : 'luna'}
+              ageVerified={ageVerified}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <!-- For him / for her -->
+  <section
+    aria-label="Para él y para ella"
+    class="mx-auto mt-16 grid max-w-6xl gap-5 px-4 md:grid-cols-2"
+  >
+    {[
+      { title: 'Para él', href: '/productos?audience=HIM', items: forHim.data, dark: true },
+      { title: 'Para ella', href: '/productos?audience=HER', items: forHer.data, dark: false },
+    ].map((block) => (
+      <div
+        class:list={[
+          'relative overflow-hidden rounded-[2rem] p-6 sm:p-8',
+          block.dark ? 'bg-luna text-crema' : 'bg-sol-100 text-noche',
+        ]}
+      >
+        <FolkBranch
+          tone={block.dark ? 'sol' : 'luna'}
+          flipX
+          class="pointer-events-none absolute -top-6 -right-8 size-32 opacity-80"
+        />
+        <h2 class:list={['relative text-4xl sm:text-5xl', block.dark ? 'text-crema' : 'text-luna']}>
+          {block.title}
+        </h2>
+        <ul class="relative mt-5 space-y-2">
+          {block.items.slice(0, 3).map((p) => (
+            <li>
+              <a
+                href={`/productos/${p.slug}`}
+                class:list={[
+                  'flex min-h-12 items-center justify-between gap-3 rounded-2xl px-4 py-2 font-semibold',
+                  block.dark ? 'bg-luna-600 hover:bg-luna-700' : 'bg-white hover:bg-crema-50',
+                ]}
+              >
+                <span>{p.name}</span>
+                <span class="font-display shrink-0">{formatCOP(p.price)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <a
+          href={block.href}
           class:list={[
-            'relative overflow-hidden rounded-[2rem] p-6',
-            item.variant === 'crema' ? 'bg-crema-50 ring-2 ring-luna' : 'bg-luna text-crema',
+            'relative mt-6 inline-flex min-h-12 items-center gap-2 rounded-full px-6 font-semibold',
+            block.dark ? 'bg-crema text-luna' : 'bg-luna text-crema',
           ]}
         >
-          {item.variant === 'luna' && (
-            <div
-              class="absolute -bottom-10 -left-10 size-48 rounded-[2.5rem] bg-sol"
-              aria-hidden="true"
-            />
-          )}
-          <span
-            class:list={[
-              'pill-chip absolute top-5 right-5',
-              item.variant === 'luna' && 'bg-crema text-luna',
-            ]}
-          >
-            {item.chip}
-          </span>
-          <ProductPlaceholder
-            label={`Imagen provisional de ${item.name}`}
-            class="relative mx-auto size-48"
-          />
-          <h2 class:list={['relative mt-4 text-2xl', item.variant === 'luna' && 'text-crema']}>
-            {item.name}
-          </h2>
-          <p class="relative mt-2">
-            <span class:list={['pill-attr', item.variant === 'luna' && 'border-crema text-crema']}>
-              {item.attr}
-            </span>
-          </p>
-          <p
-            class:list={[
-              'relative mt-4 font-display text-3xl font-black',
-              item.variant === 'crema' ? 'text-luna' : 'text-crema',
-            ]}
-          >
-            {formatCOP(item.price)}
-          </p>
-        </article>
-      ))}
-    </div>
-
-    <p class="mt-10">
-      <a
-        href="https://www.instagram.com/solylunastore1/"
-        class="pill-cta"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        Síguenos en Instagram <span aria-hidden="true">→</span>
-      </a>
-    </p>
+          Ver todo {block.title.toLowerCase()} <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    ))}
   </section>
+
+  {brands.length > 0 && (
+    <section aria-labelledby="titulo-marcas" class="mx-auto mt-16 max-w-6xl px-4">
+      <div class="flex items-end justify-between gap-4">
+        <h2 id="titulo-marcas" class="text-3xl sm:text-4xl">
+          Marcas
+        </h2>
+        <a href="/marcas" class="font-semibold text-luna underline-offset-4 hover:underline">
+          Todas las marcas
+        </a>
+      </div>
+      <ul class="mt-6 flex flex-wrap gap-3">
+        {brands.map((b) => (
+          <li>
+            <a
+              href={`/marcas/${b.slug}`}
+              class:list={[
+                'inline-flex min-h-12 items-center rounded-full border-2 px-5 font-display text-lg font-bold',
+                b.theme?.mode === 'dark'
+                  ? 'border-noche bg-noche text-[#c7ff9e]'
+                  : 'border-luna text-luna hover:bg-luna-50',
+              ]}
+            >
+              {b.name}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </BaseLayout>

@@ -1,0 +1,83 @@
+---
+const items = [
+  {
+    title: 'Envío gratis',
+    text: 'A cualquier municipio de Colombia. Empaque discreto si lo pides.',
+    icon: 'truck',
+  },
+  {
+    title: 'Pago seguro',
+    text: 'Pagas con Mercado Pago o Wompi. Nunca vemos los datos de tu tarjeta.',
+    icon: 'lock',
+  },
+  {
+    title: 'Registro INVIMA',
+    text: 'Cada ficha te dice si el producto tiene registro y cuál es su número.',
+    icon: 'seal',
+  },
+];
+---
+
+<section aria-labelledby="confianza" class="mx-auto max-w-6xl px-4">
+  <h2 id="confianza" class="sr-only">
+    Por qué comprar en Sol y Luna
+  </h2>
+  <ul class="grid gap-4 sm:grid-cols-3">
+    {items.map((item) => (
+      <li class="flex gap-4 rounded-[1.75rem] bg-white p-5 ring-1 ring-luna/10">
+        <span
+          class="grid size-12 shrink-0 place-items-center rounded-full bg-sol text-crema"
+          aria-hidden="true"
+        >
+          {item.icon === 'truck' && (
+            <svg
+              viewBox="0 0 24 24"
+              class="size-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" />
+              <circle cx="7" cy="18" r="1.6" />
+              <circle cx="17" cy="18" r="1.6" />
+            </svg>
+          )}
+          {item.icon === 'lock' && (
+            <svg
+              viewBox="0 0 24 24"
+              class="size-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          )}
+          {item.icon === 'seal' && (
+            <svg
+              viewBox="0 0 24 24"
+              class="size-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9L3.3 14.7l1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          )}
+        </span>
+        <div>
+          <p class="font-display text-xl font-bold text-luna">{item.title}</p>
+          <p class="mt-1 text-sm text-noche/80">{item.text}</p>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>

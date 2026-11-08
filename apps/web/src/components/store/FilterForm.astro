@@ -1,0 +1,164 @@
+---
+import type { Brand, CategoryNode } from '../../lib/catalog';
+
+interface Props {
+  idPrefix: string;
+  url: URL;
+  categories: (CategoryNode & { parent: CategoryNode | null })[];
+  brands: Brand[];
+  /** Category pages fix the category and do not show the selector. */
+  fixedCategory?: string | undefined;
+}
+const { idPrefix, url, categories, brands, fixedCategory } = Astro.props;
+const p = url.searchParams;
+const id = (name: string) => `${idPrefix}-${name}`;
+const field =
+  'block w-full min-h-11 rounded-xl border-2 border-luna/20 bg-white px-3 text-base outline-none focus:border-luna';
+const audiences = [
+  { value: '', label: 'Todos' },
+  { value: 'HIM', label: 'Para él' },
+  { value: 'HER', label: 'Para ella' },
+  { value: 'UNISEX', label: 'Unisex' },
+];
+---
+
+<form method="get" action={url.pathname} class="space-y-5">
+  <div class="space-y-1.5">
+    <label for={id('q')} class="block text-sm font-semibold">
+      Buscar
+    </label>
+    <input
+      id={id('q')}
+      name="q"
+      type="search"
+      value={p.get('q') ?? ''}
+      placeholder="Nombre o marca"
+      class={field}
+    />
+  </div>
+  {!fixedCategory && (
+    <div class="space-y-1.5">
+      <label for={id('category')} class="block text-sm font-semibold">
+        Categoría
+      </label>
+      <select id={id('category')} name="category" class={field}>
+        <option value="">Todas</option>
+        {categories.map((c) => (
+          <option value={c.slug} selected={p.get('category') === c.slug}>
+            {c.parent ? `— ${c.name}` : c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+  <fieldset class="space-y-1.5">
+    <legend class="text-sm font-semibold">Para quién</legend>
+    <div class="flex flex-wrap gap-2">
+      {audiences.map((a) => (
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="audience"
+            value={a.value}
+            checked={(p.get('audience') ?? '') === a.value}
+            class="peer sr-only"
+          />
+          <span class="inline-flex min-h-10 items-center rounded-full border-2 border-luna/25 px-4 text-sm font-semibold text-luna peer-checked:border-luna peer-checked:bg-luna peer-checked:text-crema peer-focus-visible:outline-3 peer-focus-visible:outline-sol-600">
+            {a.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+  {brands.length > 0 && (
+    <div class="space-y-1.5">
+      <label for={id('brand')} class="block text-sm font-semibold">
+        Marca
+      </label>
+      <select id={id('brand')} name="brand" class={field}>
+        <option value="">Todas</option>
+        {brands.map((b) => (
+          <option value={b.slug} selected={p.get('brand') === b.slug}>
+            {b.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+  <fieldset class="space-y-1.5">
+    <legend class="text-sm font-semibold">Precio (COP)</legend>
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label for={id('min')} class="sr-only">
+          Precio mínimo
+        </label>
+        <input
+          id={id('min')}
+          name="minPrice"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          placeholder="Desde"
+          value={p.get('minPrice') ?? ''}
+          class={field}
+        />
+      </div>
+      <div>
+        <label for={id('max')} class="sr-only">
+          Precio máximo
+        </label>
+        <input
+          id={id('max')}
+          name="maxPrice"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          placeholder="Hasta"
+          value={p.get('maxPrice') ?? ''}
+          class={field}
+        />
+      </div>
+    </div>
+  </fieldset>
+  <label class="flex min-h-11 cursor-pointer items-center gap-3">
+    <input
+      type="checkbox"
+      name="invima"
+      value="1"
+      checked={p.get('invima') === '1'}
+      class="size-5 accent-luna"
+    />
+    <span class="text-sm font-semibold">Solo con registro INVIMA</span>
+  </label>
+  <div class="space-y-1.5">
+    <label for={id('sort')} class="block text-sm font-semibold">
+      Ordenar por
+    </label>
+    <select id={id('sort')} name="sort" class={field}>
+      <option value="relevance" selected={!p.get('sort') || p.get('sort') === 'relevance'}>
+        Destacados
+      </option>
+      <option value="newest" selected={p.get('sort') === 'newest'}>
+        Más nuevos
+      </option>
+      <option value="price_asc" selected={p.get('sort') === 'price_asc'}>
+        Precio: menor a mayor
+      </option>
+      <option value="price_desc" selected={p.get('sort') === 'price_desc'}>
+        Precio: mayor a menor
+      </option>
+      <option value="name" selected={p.get('sort') === 'name'}>
+        Nombre
+      </option>
+    </select>
+  </div>
+  <div class="flex flex-wrap gap-2 pt-1">
+    <button type="submit" class="pill-cta min-h-11 flex-1 justify-center">
+      Aplicar filtros
+    </button>
+    <a
+      href={url.pathname}
+      class="inline-flex min-h-11 items-center rounded-full px-4 font-semibold text-luna hover:bg-luna-50"
+    >
+      Limpiar
+    </a>
+  </div>
+</form>

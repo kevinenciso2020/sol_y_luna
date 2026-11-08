@@ -1,0 +1,110 @@
+---
+import FolkBranch from './FolkBranch.astro';
+import Wordmark from '../Wordmark.astro';
+
+interface Props {
+  instagramUrl?: string | null | undefined;
+  contactEmail?: string | null | undefined;
+}
+const { instagramUrl = 'https://www.instagram.com/solylunastore1/', contactEmail } = Astro.props;
+const legal = [
+  { href: '/legal/terminos', label: 'Términos y condiciones' },
+  { href: '/legal/privacidad', label: 'Tratamiento de datos' },
+  { href: '/legal/retracto', label: 'Retracto y garantías' },
+  { href: '/legal/envios', label: 'Envíos' },
+  { href: '/legal/devoluciones', label: 'Devoluciones' },
+];
+---
+
+<footer class="relative mt-20 overflow-hidden bg-luna text-crema">
+  <FolkBranch
+    tone="crema"
+    class="pointer-events-none absolute -top-10 -right-10 size-56 opacity-20 sm:size-72"
+  />
+  <div class="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="space-y-3">
+      <div class="[&_a]:text-crema [&_span]:text-sol-300">
+        <Wordmark />
+      </div>
+      <p class="max-w-[32ch] text-sm text-crema/85">
+        Suplementos, cuidado íntimo, skincare y bienestar. Envío gratis a toda Colombia.
+      </p>
+    </div>
+    <nav aria-label="Tienda">
+      <p class="font-display text-lg font-bold">Tienda</p>
+      <ul class="mt-3 space-y-1 text-sm">
+        <li>
+          <a class="inline-flex min-h-9 items-center hover:underline" href="/productos">
+            Todos los productos
+          </a>
+        </li>
+        <li>
+          <a
+            class="inline-flex min-h-9 items-center hover:underline"
+            href="/productos?audience=HIM"
+          >
+            Para él
+          </a>
+        </li>
+        <li>
+          <a
+            class="inline-flex min-h-9 items-center hover:underline"
+            href="/productos?audience=HER"
+          >
+            Para ella
+          </a>
+        </li>
+        <li>
+          <a class="inline-flex min-h-9 items-center hover:underline" href="/marcas">
+            Marcas
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <nav aria-label="Información legal">
+      <p class="font-display text-lg font-bold">Ayuda</p>
+      <ul class="mt-3 space-y-1 text-sm">
+        {legal.map((l) => (
+          <li>
+            <a class="inline-flex min-h-9 items-center hover:underline" href={l.href}>
+              {l.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <div>
+      <p class="font-display text-lg font-bold">Contacto</p>
+      <ul class="mt-3 space-y-1 text-sm">
+        {instagramUrl && (
+          <li>
+            <a
+              class="inline-flex min-h-9 items-center hover:underline"
+              href={instagramUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Instagram @solylunastore1
+            </a>
+          </li>
+        )}
+        {contactEmail && (
+          <li>
+            <a
+              class="inline-flex min-h-9 items-center break-all hover:underline"
+              href={`mailto:${contactEmail}`}
+            >
+              {contactEmail}
+            </a>
+          </li>
+        )}
+      </ul>
+    </div>
+  </div>
+  <div class="relative border-t border-crema/15">
+    <p class="mx-auto max-w-6xl px-4 py-5 text-xs text-crema/75">
+      © {new Date().getFullYear()} Sol y Luna Store · Colombia. Los suplementos dietarios no son
+      medicamentos y no suplen una alimentación equilibrada.
+    </p>
+  </div>
+</footer>

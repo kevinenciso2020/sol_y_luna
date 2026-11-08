@@ -1,0 +1,45 @@
+---
+/**
+ * Original folk-style branch (stem, almond leaves and berries) in the brand's blue and orange.
+ * Purely decorative: hidden from assistive technology.
+ */
+interface Props {
+  class?: string;
+  /** Mirror horizontally / vertically to fit any corner. */
+  flipX?: boolean;
+  flipY?: boolean;
+  tone?: 'luna' | 'sol' | 'crema';
+}
+const { class: className = '', flipX = false, flipY = false, tone = 'luna' } = Astro.props;
+const main = { luna: '#1747b5', sol: '#e9552e', crema: '#fbf5ea' }[tone];
+const accent = tone === 'sol' ? '#1747b5' : '#e9552e';
+const transform = `scale(${flipX ? -1 : 1} ${flipY ? -1 : 1})`;
+---
+
+<svg viewBox="-120 -120 240 240" class={className} aria-hidden="true" focusable="false">
+  <g transform={transform}>
+    <path
+      d="M-110 110 C -60 60, -20 20, 40 -30 S 100 -90, 110 -110"
+      fill="none"
+      stroke={main}
+      stroke-width="5"
+      stroke-linecap="round"
+    ></path>
+    <g fill={main}>
+      <path d="M-70 72 c -6 -26 8 -46 30 -50 c 4 24 -10 44 -30 50 Z"></path>
+      <path d="M-58 64 c 24 -10 46 -2 54 18 c -22 10 -46 2 -54 -18 Z"></path>
+      <path d="M-14 28 c -8 -26 4 -48 26 -54 c 6 24 -6 46 -26 54 Z"></path>
+      <path d="M2 18 c 24 -12 48 -4 56 16 c -22 12 -46 4 -56 -16 Z"></path>
+      <path d="M50 -38 c -6 -24 6 -44 26 -48 c 4 22 -8 42 -26 48 Z"></path>
+      <path d="M62 -46 c 22 -8 42 2 48 20 c -22 8 -42 -2 -48 -20 Z"></path>
+    </g>
+    <g fill={accent}>
+      <circle cx="-88" cy="40" r="7"></circle>
+      <circle cx="-74" cy="30" r="5"></circle>
+      <circle cx="-30" cy="-10" r="6"></circle>
+      <circle cx="28" cy="-60" r="7"></circle>
+      <circle cx="94" cy="-84" r="5"></circle>
+    </g>
+    <path d="M-40 52 l 10 -18 l 10 18 l -10 18 Z" fill={accent} opacity="0.9"></path>
+  </g>
+</svg>
