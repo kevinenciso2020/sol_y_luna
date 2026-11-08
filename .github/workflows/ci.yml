@@ -142,6 +142,8 @@ jobs:
       - name: Variables de la web
         run: printf 'API_INTERNAL_URL=http://localhost:4100\nBFF_SHARED_SECRET=%s\n' "$BFF_SHARED_SECRET" > apps/web/.env
       - run: pnpm build:shared
+      - name: Prisma generate
+        run: pnpm --filter @sol-y-luna/api db:generate
       - name: Instalar Chromium
         run: pnpm --filter @sol-y-luna/web exec playwright install --with-deps chromium
       - name: Playwright
