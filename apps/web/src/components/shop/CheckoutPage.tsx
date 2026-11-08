@@ -30,19 +30,24 @@ declare global {
     turnstile?: {
       render: (el: HTMLElement, opts: Record<string, unknown>) => string;
       reset: (id?: string) => void;
+      remove?: (id: string) => void;
     };
   }
 }
 
+/**
+ * Turnstile for guest checkout. The container only exists once the cart has loaded, so the widget
+ * is rendered when the element mounts (callback ref), not on the first render.
+ */
 function useTurnstile(enabled: boolean) {
-  const ref = useRef<HTMLDivElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | undefined>();
   const widget = useRef<string | null>(null);
   useEffect(() => {
-    if (!enabled || !PUBLIC_TURNSTILE_SITE_KEY || !ref.current) return;
+    if (!enabled || !PUBLIC_TURNSTILE_SITE_KEY || !container) return;
     const render = () => {
-      if (ref.current && window.turnstile && widget.current === null) {
-        widget.current = window.turnstile.render(ref.current, {
+      if (window.turnstile && widget.current === null) {
+        widget.current = window.turnstile.render(container, {
           sitekey: PUBLIC_TURNSTILE_SITE_KEY,
           language: 'es',
           callback: (t: string) => setToken(t),
@@ -58,12 +63,21 @@ function useTurnstile(enabled: boolean) {
       script.onload = render;
       document.head.appendChild(script);
     }
-  }, [enabled]);
+    return () => {
+      if (widget.current !== null) window.turnstile?.remove?.(widget.current);
+      widget.current = null;
+    };
+  }, [enabled, container]);
   const reset = () => {
     setToken(undefined);
     if (widget.current !== null) window.turnstile?.reset(widget.current);
   };
-  return { ref, token, reset, active: enabled && Boolean(PUBLIC_TURNSTILE_SITE_KEY) };
+  return {
+    ref: setContainer,
+    token,
+    reset,
+    active: enabled && Boolean(PUBLIC_TURNSTILE_SITE_KEY),
+  };
 }
 
 const ERROR_KEYS: Record<string, string> = {
