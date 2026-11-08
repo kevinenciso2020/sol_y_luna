@@ -37,7 +37,8 @@ Antes de cualquier comando en la terminal: `source ~/.nvm/nvm.sh && nvm use` (No
 - `pnpm e2e` — Playwright (mobile + desktop) contra el build de producción (workerd) y la rama `test`; requiere `apps/api/.env` y `.env.test`
 - `pnpm --filter @sol-y-luna/web preview` — build en workerd local (usa `apps/web/.dev.vars`)
 - `pnpm db:migrate` — `prisma migrate dev` (solo contra la rama `dev` de Neon)
-- `pnpm db:deploy` — `prisma migrate deploy` (producción)
+- `pnpm db:deploy` — `prisma migrate deploy` (producción; Railway lo corre en el pre-deploy)
+- `scripts/deploy-web.sh` — publica la web en Cloudflare desde una copia limpia del último commit (ver `docs/DEPLOY.md`)
 - `pnpm db:seed` — seed idempotente (requiere ADMIN_/OPERATOR_SEED_* en `apps/api/.env`)
 - `pnpm db:generate`, `pnpm db:studio`
 - Por paquete: `pnpm --filter @sol-y-luna/api <script>`
@@ -81,16 +82,18 @@ Sin credenciales: pagos con mock, imágenes placeholder, emails al log, sin Turn
 
 ## Estado de las fases
 
-| Fase                                         | Estado      |
-| -------------------------------------------- | ----------- |
-| 0. Base                                      | ✅ Completa |
-| 1. Datos (Prisma, migración, seed, DIVIPOLA) | ✅ Completa |
-| 2. Auth y seguridad                          | ✅ Completa |
-| 3. Catálogo y admin                          | ✅ Completa |
-| 4. Tienda                                    | ✅ Completa |
-| 5. Compra y pagos                            | ✅ Completa |
-| 6. Negocio (comisiones, operador, emails)    | ✅ Completa |
-| 7. Cuenta                                    | ✅ Completa |
-| 8. Despliegue                                | Pendiente   |
+| Fase                                         | Estado                                                       |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| 0. Base                                      | ✅ Completa                                                  |
+| 1. Datos (Prisma, migración, seed, DIVIPOLA) | ✅ Completa                                                  |
+| 2. Auth y seguridad                          | ✅ Completa                                                  |
+| 3. Catálogo y admin                          | ✅ Completa                                                  |
+| 4. Tienda                                    | ✅ Completa                                                  |
+| 5. Compra y pagos                            | ✅ Completa                                                  |
+| 6. Negocio (comisiones, operador, emails)    | ✅ Completa                                                  |
+| 7. Cuenta                                    | ✅ Completa                                                  |
+| 8. Despliegue                                | ✅ En línea (falta prueba manual y rotar contraseña de Neon) |
 
-Pendientes conocidos: las sesiones KV del adapter de Cloudflare y el servicio `api` de Railway (ya creado y configurado, sin repo conectado) se conecta en la fase 8; la rama `main` de Neon aún no tiene migraciones (se aplican al desplegar).
+Producción (demo): web https://sol-y-luna-web.kencisosanches.workers.dev (Worker, `scripts/deploy-web.sh`), API https://api-production-0a3d.up.railway.app (Railway, autodeploy desde `main`), base Neon rama `main`. Secretos en `~/.config/sol-y-luna/produccion.env` (fuera del repo, valores entre comillas). Paso a paso y checklist demo → producción en `docs/DEPLOY.md`.
+
+Pendientes conocidos: rotar la contraseña de `solyluna_owner` en Neon `main` (quedó expuesta en una sesión local) y actualizar `DATABASE_URL`/`DIRECT_URL` en Railway; prueba de compra manual en la URL pública (Turnstile bloquea a Playwright); Sentry sin integrar.

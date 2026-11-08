@@ -1,6 +1,6 @@
 // Cloudflare Worker of the store (Astro SSR + static assets). See docs/DEPLOY.md.
 // Secrets are NOT here: API_INTERNAL_URL and BFF_SHARED_SECRET are Worker secrets
-// (`wrangler secret put`). PUBLIC_* values are inlined by Astro at build time (pnpm deploy).
+// (`wrangler secret put`). PUBLIC_* values are inlined by Astro at build time (scripts/deploy-web.sh).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sol-y-luna-web",
@@ -8,4 +8,7 @@
   // Astro sessions (cart guest token lives in its own cookie; this is Astro's session store).
   "kv_namespaces": [{ "binding": "SESSION", "id": "3be5be01012243ca84f810f1c6ec74a2" }],
   "observability": { "enabled": true },
+  // Public URL: https://sol-y-luna-web.<account>.workers.dev. No per-version preview URLs.
+  "workers_dev": true,
+  "preview_urls": false,
 }

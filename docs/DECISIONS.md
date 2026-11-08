@@ -365,3 +365,24 @@ Nuevas plantillas: pedido despachado (transportadora, guía y botón de seguimie
 
 - **Contador del carrito:** la lectura inicial del encabezado podía llegar después de "Agregar al carrito" y dejar el contador en 0. Ahora cada cambio del carrito incrementa un contador en `cart-client.ts` y `refreshCartBadge()` descarta su respuesta si hubo un cambio mientras tanto.
 - **Cupón rechazado en el checkout:** si el servidor rechaza el cupón (por ejemplo, ya se usó con ese correo), el checkout dice por qué y pide quitarlo en el carrito, en lugar de un "Revisa los campos marcados" sin campos marcados.
+
+## 2026-11-08 — Fase 8
+
+### Despliegue
+
+- **Web:** Worker `sol-y-luna-web` en `*.workers.dev`, con `workers_dev: true` y `preview_urls: false`. Se despliega con `scripts/deploy-web.sh` desde un _git worktree_ limpio del último commit. Astro incrusta las `PUBLIC_*` al compilar y, desde que existe `wrangler.jsonc`, el adapter lee el `.dev.vars` local y sobrescribiría los valores de producción con los vacíos de desarrollo.
+- **API:** Railway compila con `NODE_ENV=development pnpm install …` para instalar las dependencias de desarrollo (TypeScript y la CLI de Prisma). `NODE_ENV=production` aplica solo en tiempo de ejecución.
+- **Secretos:** generados de cero en `~/.config/sol-y-luna/produccion.env` (`600`, fuera del repo) y cargados con la CLI de Railway y `wrangler secret put` leyendo ese archivo, sin mostrarlos. Las contraseñas del seed no se dejan en Railway: solo las usa el seed, que se corre desde el equipo.
+- **Turnstile:** widget _Managed_ creado por API para el hostname del Worker; obligatorio en producción.
+
+### Incidente: contraseña de Neon expuesta en la sesión local
+
+Al cargar variables, el archivo de secretos tenía las URLs de Neon sin comillas. El `&` partió la línea y la contraseña de `solyluna_owner` (rama `main`) se imprimió en la terminal de la sesión. No llegó al repo ni a servicios externos, pero se trata como comprometida: el dueño la rota al cierre de la fase y se actualizan `DATABASE_URL`/`DIRECT_URL` en Railway. Desde entonces el archivo guarda todos los valores con `shlex.quote` y las salidas se filtran.
+
+### Bug encontrado en producción: Turnstile en el checkout de invitado
+
+El efecto que montaba el widget corría solo en el primer render, cuando el checkout aún mostraba "Cargando…" y el contenedor no existía: el script de Turnstile nunca se cargaba y un invitado no podía pagar. En el CI no se veía porque ahí no hay clave de Turnstile. Ahora el widget se monta con una _callback ref_ cuando aparece el contenedor (verificado en producción: el script carga y ejecuta su desafío).
+
+### Prueba en producción
+
+Turnstile bloquea a los navegadores automatizados (con y sin ventana), así que la compra de punta a punta en la URL pública la hace una persona. Automáticamente se verificaron: `/health` con la base, todas las páginas públicas en 200, `/admin` y `/operador` redirigen a ingresar, cabeceras de seguridad (CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy), canonical con la URL pública y Lighthouse móvil 99/100/100/100 en inicio y ficha.
